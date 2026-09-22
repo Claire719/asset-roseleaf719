@@ -78,18 +78,55 @@
       font-weight: 600;
     }
 
+    /* 版本 A：質感左側色條卡片風 */
     .card {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
       border: 1px solid var(--border);
+      border-left: 5px solid #3b82f6; /* 預設藍色 */
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
-    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .card:hover {
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    }
+    .card-tw { border-left-color: #2563eb; } /* 台股：亮藍 */
+    .card-us { border-left-color: #7c3aed; } /* 美股：紫青 */
+    .card-hk { border-left-color: #d97706; } /* 港股：琥珀金 */
+    .card-cash { border-left-color: #10b981; } /* 現金：翡翠綠 */
+    .card-debt { border-left-color: #f43f5e; } /* 負債：玫瑰紅 */
+
+    .item-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-start; 
+      padding-bottom: 10px;
+      border-bottom: 1px solid #f1f5f9;
+      margin-bottom: 10px;
+    }
     .item-title { font-size: 17px; font-weight: 700; }
-    .item-market { font-size: 12px; padding: 2px 6px; background: #e2e8f0; border-radius: 4px; margin-left: 6px; }
-    .item-data { display: flex; justify-content: space-between; margin-top: 6px; font-size: 14px; }
-    .item-meta { font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .item-market { font-size: 12px; padding: 2px 6px; background: #e2e8f0; border-radius: 4px; margin-left: 6px; font-weight: normal; }
+    .item-data { 
+      display: flex; 
+      justify-content: space-between; 
+      margin-top: 4px; 
+      font-size: 14px; 
+      padding: 4px 6px;
+      border-radius: 6px;
+    }
+    .item-data:nth-child(even) {
+      background: #f8fafc; /* 淡淡的交替襯底 */
+    }
+    .item-meta { 
+      font-size: 11px; 
+      color: var(--text-sub); 
+      margin-top: 10px; 
+      line-height: 1.4; 
+      border-top: 1px dashed var(--border); 
+      padding-top: 8px; 
+    }
 
     .badge-warn { color: var(--warning); font-weight: 600; }
     .badge-ok { color: var(--success); font-weight: 700; }
@@ -360,7 +397,7 @@ let state = {
 
 let importStagingData = null;
 
-// --- 彈窗操作函數 (明確掛載到 window，防止 ReferenceError) ---
+// --- 彈窗操作函數 (掛載至 window 物件，防範 ReferenceError) ---
 window.openModal = function(id) {
   const el = document.getElementById(id);
   if (el) el.style.display = 'flex';
@@ -405,7 +442,7 @@ window.saveItem = function() {
   saveToLocal();
   closeModal('addAssetModal');
   
-  // 清空輸入欄位方便下次填寫
+  // 清空輸入欄位
   document.getElementById('stockSymbol').value = '';
   document.getElementById('stockQty').value = '';
   document.getElementById('fiatAmount').value = '';
@@ -828,10 +865,22 @@ window.renderUI = function() {
     }
   });
 
-  // 卡片渲染
+  // 卡片渲染（加入版本 A 專屬邊條 class）
   enrichedAssets.forEach(item => {
     const card = document.createElement('div');
-    card.className = 'card';
+    
+    // 依類別賦予特色色條 Class
+    let typeClass = 'card-tw';
+    if (item.type === 'STOCK') {
+      if (item.market === 'US') typeClass = 'card-us';
+      else if (item.market === 'HK') typeClass = 'card-hk';
+      else typeClass = 'card-tw';
+    } else if (item.type === 'CASH') {
+      typeClass = 'card-cash';
+    } else if (item.type === 'DEBT') {
+      typeClass = 'card-debt';
+    }
+    card.className = `card ${typeClass}`;
 
     if (item.type === 'STOCK') {
       const ticker = resolveTicker(item.market, item.symbol);
@@ -987,7 +1036,6 @@ window.renderUI = function() {
 window.addEventListener('DOMContentLoaded', () => {
   loadFromLocal();
   renderUI();
-  // 啟動行情更新（即使後端暫時連不上也不會讓頁面功能壞掉）
   refreshQuotes(true).catch(e => console.warn('初期行情抓取略過:', e));
 });
 </script>
