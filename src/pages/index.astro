@@ -225,7 +225,7 @@
 </div>
 
 <!-- 新增資產 Modal -->
-<div id="addAssetModal" class="modal">
+<div id="addAssetModal" class="modal" onclick="if(event.target===this) closeModal('addAssetModal')">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;">新增項目</h3>
     <div class="form-group">
@@ -281,7 +281,7 @@
 </div>
 
 <!-- 修改數量 Modal -->
-<div id="editQtyModal" class="modal">
+<div id="editQtyModal" class="modal" onclick="if(event.target===this) closeModal('editQtyModal')">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;">修改持有數量</h3>
     <input type="hidden" id="editItemId">
@@ -297,7 +297,7 @@
 </div>
 
 <!-- 手動補登價格與資訊 Modal -->
-<div id="manualPriceModal" class="modal">
+<div id="manualPriceModal" class="modal" onclick="if(event.target===this) closeModal('manualPriceModal')">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;">手動設定價格與指標</h3>
     <input type="hidden" id="manualQuoteKey">
@@ -325,7 +325,7 @@
 </div>
 
 <!-- 備份還原 Modal -->
-<div id="backupModal" class="modal">
+<div id="backupModal" class="modal" onclick="if(event.target===this) closeModal('backupModal')">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;">備份與還原</h3>
     <div class="form-group">
@@ -344,7 +344,7 @@
 </div>
 
 <script>
-// 【重要】請將此網址替換為您的 Cloudflare Worker 網址
+// 【重要】請確認此網址為您的 Cloudflare Worker
 const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev'; 
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
@@ -360,44 +360,30 @@ let state = {
 
 let importStagingData = null;
 
-window.addEventListener('DOMContentLoaded', () => {
-  loadFromLocal();
-  renderUI();
-  refreshQuotes(true);
-});
+// --- 彈窗操作函數 (明確掛載到 window，防止 ReferenceError) ---
+window.openModal = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
+};
 
-function loadFromLocal() {
-  const local = localStorage.getItem(STORAGE_KEY);
-  if (local) {
-    try {
-      const parsed = JSON.parse(local);
-      state = { ...state, ...parsed };
-    } catch (e) {
-      console.error("Local data parse error", e);
-    }
-  }
-}
+window.closeModal = function(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+};
 
-function saveToLocal() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
-
-function toggleFormType() {
+window.toggleFormType = function() {
   const type = document.getElementById('itemType').value;
   document.getElementById('stockFields').style.display = (type === 'STOCK') ? 'block' : 'none';
   document.getElementById('fiatFields').style.display = (type !== 'STOCK') ? 'block' : 'none';
-}
+};
 
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
-function saveItem() {
+window.saveItem = function() {
   const type = document.getElementById('itemType').value;
   const id = Date.now().toString();
 
   if (type === 'STOCK') {
     const market = document.getElementById('stockMarket').value;
-    let symbol = document.getElementById('stockSymbol').value.trim().toUpperCase();
+    let symbol = (document.getElementById('stockSymbol').value || '').trim().toUpperCase();
     const qty = parseFloat(document.getElementById('stockQty').value);
 
     if (!symbol || isNaN(qty) || qty <= 0) {
@@ -418,20 +404,26 @@ function saveItem() {
 
   saveToLocal();
   closeModal('addAssetModal');
+  
+  // 清空輸入欄位方便下次填寫
+  document.getElementById('stockSymbol').value = '';
+  document.getElementById('stockQty').value = '';
+  document.getElementById('fiatAmount').value = '';
+
   renderUI();
   refreshQuotes(true);
-}
+};
 
-function promptEditQty(id) {
+window.promptEditQty = function(id) {
   const item = state.assets.find(a => a.id === id);
   if (!item) return;
   document.getElementById('editItemId').value = id;
   document.getElementById('editItemLabel').innerText = item.type === 'STOCK' ? `${item.symbol} 持有股數` : `${item.currency} 金額`;
   document.getElementById('editItemQty').value = item.type === 'STOCK' ? item.qty : item.amount;
   openModal('editQtyModal');
-}
+};
 
-function submitEditQty() {
+window.submitEditQty = function() {
   const id = document.getElementById('editItemId').value;
   const val = parseFloat(document.getElementById('editItemQty').value);
   if (isNaN(val) || val <= 0) {
@@ -446,17 +438,119 @@ function submitEditQty() {
     closeModal('editQtyModal');
     renderUI();
   }
-}
+};
 
-function deleteItem(id) {
+window.deleteItem = function(id) {
   if (confirm('確定刪除此項目？')) {
     state.assets = state.assets.filter(a => a.id !== id);
     saveToLocal();
     renderUI();
   }
+};
+
+window.promptManualPrice = function(ticker) {
+  document.getElementById('manualQuoteKey').value = ticker;
+  const current = state.quotes[ticker] || {};
+  document.getElementById('manualPriceVal').value = current.price || '';
+  document.getElementById('manualBetaVal').value = (current.beta !== null && current.beta !== undefined) ? current.beta : '';
+  document.getElementById('manualYieldVal').value = (current.divYield !== null && current.divYield !== undefined) ? current.divYield : '';
+  document.getElementById('manualPriceDate').value = current.date || new Date().toISOString().split('T')[0];
+  openModal('manualPriceModal');
+};
+
+window.saveManualPrice = function() {
+  const ticker = document.getElementById('manualQuoteKey').value;
+  const price = parseFloat(document.getElementById('manualPriceVal').value);
+  const betaInput = document.getElementById('manualBetaVal').value;
+  const yieldInput = document.getElementById('manualYieldVal').value;
+  const date = document.getElementById('manualPriceDate').value;
+
+  if (isNaN(price) || price <= 0 || !date) {
+    alert('請填寫正確收盤價與日期');
+    return;
+  }
+
+  let curr = 'USD';
+  if (ticker.endsWith('.TW') || ticker.endsWith('.TWO')) curr = 'TWD';
+  if (ticker.endsWith('.HK')) curr = 'HKD';
+
+  state.quotes[ticker] = {
+    ...(state.quotes[ticker] || {}),
+    price: price,
+    beta: betaInput !== '' ? parseFloat(betaInput) : null,
+    divYield: yieldInput !== '' ? parseFloat(yieldInput) : null,
+    currency: curr,
+    date: date,
+    source: '手動輸入',
+    updatedAt: new Date().toLocaleTimeString(),
+    error: null,
+    isManual: true
+  };
+
+  saveToLocal();
+  closeModal('manualPriceModal');
+  renderUI();
+};
+
+window.exportJSON = function() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `portfolio_ledger_backup_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+window.previewImport = function(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || !Array.isArray(data.assets)) throw new Error('檔案格式不符，缺少 assets 陣列');
+      importStagingData = data;
+      const previewEl = document.getElementById('importPreview');
+      previewEl.innerText = `檔案驗證通過！內含 ${data.assets.length} 筆資產紀錄。請點擊確認進行還原。`;
+      document.getElementById('btnConfirmRestore').style.display = 'block';
+    } catch (err) {
+      alert(`備份檔案讀取失敗：${err.message}`);
+      document.getElementById('importFileInput').value = '';
+      document.getElementById('btnConfirmRestore').style.display = 'none';
+    }
+  };
+  reader.readAsText(file);
+};
+
+window.confirmRestore = function() {
+  if (!importStagingData) return;
+  state = importStagingData;
+  saveToLocal();
+  renderUI();
+  closeModal('backupModal');
+  alert('資料已成功還原！');
+};
+
+function loadFromLocal() {
+  const local = localStorage.getItem(STORAGE_KEY);
+  if (local) {
+    try {
+      const parsed = JSON.parse(local);
+      state = { ...state, ...parsed };
+    } catch (e) {
+      console.error("Local data parse error", e);
+    }
+  }
+}
+
+function saveToLocal() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function resolveTicker(market, symbol) {
+  if (!symbol) return '';
   if (market === 'US') return symbol;
   if (market === 'HK') {
     let clean = symbol.replace(/^0+/, '').padStart(4, '0');
@@ -471,6 +565,7 @@ function resolveTicker(market, symbol) {
 }
 
 async function fetchQuote(tickerKey) {
+  if (!tickerKey) throw new Error('缺少代號');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -480,14 +575,12 @@ async function fetchQuote(tickerKey) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
 
-    const result = data.chart?.result?.[0];
+    const result = data?.chart?.result?.[0];
     if (!result) throw new Error('代號不支援或查無資料');
 
-    const meta = result.meta;
+    const meta = result.meta || {};
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
-
-    if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
 
     let price = null;
     let validTimestamp = null;
@@ -502,11 +595,13 @@ async function fetchQuote(tickerKey) {
     }
 
     if (price === null) {
-      price = meta.regularMarketPrice;
-      validTimestamp = meta.regularMarketTime;
+      price = meta.regularMarketPrice ?? null;
+      validTimestamp = meta.regularMarketTime ?? Math.floor(Date.now() / 1000);
     }
 
-    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
+    if (price === null) throw new Error('無收盤價格資料');
+
+    const tradeDate = validTimestamp ? new Date(validTimestamp * 1000).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
     // 歷史基準價格提取 (前日、前月、前年)
     let prev1dPrice = null;
@@ -559,28 +654,31 @@ async function fetchExchangeRates() {
     clearTimeout(timeout);
     if (!res.ok) throw new Error('匯率服務連線失敗');
     const data = await res.json();
-    const twdRate = data.rates.TWD;
-    const hkdRate = data.rates.HKD;
-    const dateStr = data.time_last_update_utc ? new Date(data.time_last_update_utc).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+    if (data && data.rates) {
+      const twdRate = data.rates.TWD;
+      const hkdRate = data.rates.HKD;
+      const dateStr = data.time_last_update_utc ? new Date(data.time_last_update_utc).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
 
-    state.fxRates.USD = { rate: twdRate, date: dateStr };
-    state.fxRates.HKD = { rate: twdRate / hkdRate, date: dateStr };
+      state.fxRates.USD = { rate: twdRate, date: dateStr };
+      state.fxRates.HKD = { rate: twdRate / hkdRate, date: dateStr };
+    }
   } catch (e) {
     clearTimeout(timeout);
     console.warn("匯率更新失敗", e);
   }
 }
 
-async function refreshQuotes(silent = false) {
-  if (!silent) {
-    document.getElementById('statusBanner').style.display = 'block';
-    document.getElementById('statusBanner').innerText = '正在背景抓取行情、Beta、殖利率與匯率...';
+window.refreshQuotes = async function(silent = false) {
+  const banner = document.getElementById('statusBanner');
+  if (!silent && banner) {
+    banner.style.display = 'block';
+    banner.innerText = '正在背景抓取行情、Beta、殖利率與匯率...';
   }
 
   await fetchExchangeRates();
 
   const stockAssets = state.assets.filter(a => a.type === 'STOCK');
-  const uniqueTickers = [...new Set(stockAssets.map(a => resolveTicker(a.market, a.symbol)))];
+  const uniqueTickers = [...new Set(stockAssets.map(a => resolveTicker(a.market, a.symbol)).filter(Boolean))];
 
   const promises = uniqueTickers.map(async (ticker) => {
     try {
@@ -604,51 +702,7 @@ async function refreshQuotes(silent = false) {
   await Promise.all(promises);
   saveToLocal();
   renderUI();
-}
-
-function promptManualPrice(ticker) {
-  document.getElementById('manualQuoteKey').value = ticker;
-  const current = state.quotes[ticker] || {};
-  document.getElementById('manualPriceVal').value = current.price || '';
-  document.getElementById('manualBetaVal').value = (current.beta !== null && current.beta !== undefined) ? current.beta : '';
-  document.getElementById('manualYieldVal').value = (current.divYield !== null && current.divYield !== undefined) ? current.divYield : '';
-  document.getElementById('manualPriceDate').value = current.date || new Date().toISOString().split('T')[0];
-  openModal('manualPriceModal');
-}
-
-function saveManualPrice() {
-  const ticker = document.getElementById('manualQuoteKey').value;
-  const price = parseFloat(document.getElementById('manualPriceVal').value);
-  const betaInput = document.getElementById('manualBetaVal').value;
-  const yieldInput = document.getElementById('manualYieldVal').value;
-  const date = document.getElementById('manualPriceDate').value;
-
-  if (isNaN(price) || price <= 0 || !date) {
-    alert('請填寫正確收盤價與日期');
-    return;
-  }
-
-  let curr = 'USD';
-  if (ticker.endsWith('.TW') || ticker.endsWith('.TWO')) curr = 'TWD';
-  if (ticker.endsWith('.HK')) curr = 'HKD';
-
-  state.quotes[ticker] = {
-    ...(state.quotes[ticker] || {}),
-    price: price,
-    beta: betaInput !== '' ? parseFloat(betaInput) : null,
-    divYield: yieldInput !== '' ? parseFloat(yieldInput) : null,
-    currency: curr,
-    date: date,
-    source: '手動輸入',
-    updatedAt: new Date().toLocaleTimeString(),
-    error: null,
-    isManual: true
-  };
-
-  saveToLocal();
-  closeModal('manualPriceModal');
-  renderUI();
-}
+};
 
 function convertToTWD(amount, currency) {
   if (currency === 'TWD') return amount;
@@ -657,8 +711,9 @@ function convertToTWD(amount, currency) {
   return null;
 }
 
-function renderUI() {
+window.renderUI = function() {
   const listEl = document.getElementById('assetList');
+  if (!listEl) return;
   listEl.innerHTML = '';
 
   let totalAssetTWD = 0;
@@ -666,7 +721,7 @@ function renderUI() {
   let cashLikeTWD = 0; 
   let weightedBetaSum = 0;
   let portfolioRefTWD = 0;
-  let totalEstimatedDividendTWD = 0; // 預估明年現金配息總額
+  let totalEstimatedDividendTWD = 0;
 
   let hasIncomplete = false;
   let hasMissingBeta = false;
@@ -674,25 +729,26 @@ function renderUI() {
 
   // 匯率顯示
   const fxInfoEl = document.getElementById('fxRateInfo');
-  if (state.fxRates.USD.rate && state.fxRates.HKD.rate) {
-    fxInfoEl.innerText = `匯率 (${state.fxRates.USD.date} / ExchangeRate-API)：1 美元 = ${state.fxRates.USD.rate.toFixed(2)} 台幣 | 1 港幣 = ${state.fxRates.HKD.rate.toFixed(2)} 台幣`;
-  } else {
-    fxInfoEl.innerText = `匯率：待補或連線中`;
-    hasIncomplete = true;
-    missingReasons.push('缺少即時匯率');
+  if (fxInfoEl) {
+    if (state.fxRates.USD.rate && state.fxRates.HKD.rate) {
+      fxInfoEl.innerText = `匯率 (${state.fxRates.USD.date} / ExchangeRate-API)：1 美元 = ${state.fxRates.USD.rate.toFixed(2)} 台幣 | 1 港幣 = ${state.fxRates.HKD.rate.toFixed(2)} 台幣`;
+    } else {
+      fxInfoEl.innerText = `匯率：待補或連線中`;
+      hasIncomplete = true;
+      missingReasons.push('缺少即時匯率');
+    }
   }
 
-  const sortOpt = document.getElementById('sortOption').value;
-  const benchmarkOpt = document.getElementById('returnBenchmark').value;
+  const sortOpt = document.getElementById('sortOption')?.value || 'DEFAULT';
+  const benchmarkOpt = document.getElementById('returnBenchmark')?.value || '1D';
 
-  // 計算每筆項目資料並支援排序
   const enrichedAssets = state.assets.map(item => {
     let valTWD = null;
     let quote = null;
     let refPrice = null;
     let profitTWD = null;
     let profitRate = null;
-    let estDivTWD = 0; // 個股預估配息
+    let estDivTWD = 0;
 
     if (item.type === 'STOCK') {
       const ticker = resolveTicker(item.market, item.symbol);
@@ -712,7 +768,6 @@ function renderUI() {
           }
         }
 
-        // 計算個股預估配息 (殖利率大於 0 時)
         if (quote.divYield && quote.divYield > 0 && valTWD !== null) {
           estDivTWD = valTWD * (quote.divYield / 100);
         }
@@ -738,7 +793,7 @@ function renderUI() {
     return 0;
   });
 
-  // 統計總額、類現金、配息
+  // 統計總額
   enrichedAssets.forEach(item => {
     if (item.valTWD !== null) {
       if (item.type === 'STOCK') {
@@ -787,7 +842,6 @@ function renderUI() {
       const currency = quote?.currency || (item.market === 'TW' ? 'TWD' : item.market === 'HK' ? 'HKD' : 'USD');
       const valTWD = item.valTWD;
 
-      // 殖利率與配息顯示：0 或明確不配息標的顯示「不配息」
       let yieldDisplay = '<span class="badge-warn">待補</span>';
       if (divYield !== null && divYield !== undefined) {
         if (Number(divYield) === 0) {
@@ -797,7 +851,6 @@ function renderUI() {
         }
       }
 
-      // 報酬率顯示
       let profitDisplay = '<span style="color:var(--text-sub);">無基準資料</span>';
       if (item.profitTWD !== null && item.profitRate !== null) {
         const sign = item.profitTWD >= 0 ? '+' : '';
@@ -877,8 +930,10 @@ function renderUI() {
 
   const banner = document.getElementById('statusBanner');
   if (hasIncomplete) {
-    banner.style.display = 'block';
-    banner.innerText = `⚠️ 估值不完整：缺少最新價格或匯率（${missingReasons.join(', ')}），總額未完整加總。`;
+    if (banner) {
+      banner.style.display = 'block';
+      banner.innerText = `⚠️ 估值不完整：缺少最新價格或匯率（${missingReasons.join(', ')}），總額未完整加總。`;
+    }
     document.getElementById('netAssetDisplay').innerHTML = `<span class="badge-warn">估值不完整</span>`;
     document.getElementById('totalAssetDisplay').innerText = `已計：$${Math.round(totalAssetTWD).toLocaleString()}`;
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
@@ -889,14 +944,13 @@ function renderUI() {
     document.getElementById('portfolioYieldDisplay').innerText = `--`;
     document.getElementById('portfolioReturnDisplay').innerText = `--`;
   } else {
-    banner.style.display = 'none';
+    if (banner) banner.style.display = 'none';
     const net = totalAssetTWD - totalDebtTWD;
     document.getElementById('netAssetDisplay').innerText = `$${Math.round(net).toLocaleString()}`;
     document.getElementById('totalAssetDisplay').innerText = `$${Math.round(totalAssetTWD).toLocaleString()}`;
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
     document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()}`;
 
-    // 顯示預估配息金額與總平均殖利率
     document.getElementById('estimatedDividendDisplay').innerText = `$${Math.round(totalEstimatedDividendTWD).toLocaleString()}`;
     if (totalAssetTWD > 0) {
       const avgYield = (totalEstimatedDividendTWD / totalAssetTWD) * 100;
@@ -916,7 +970,6 @@ function renderUI() {
       const cashRatio = (cashLikeTWD / totalAssetTWD) * 100;
       document.getElementById('cashLikeRatioDisplay').innerText = `${cashRatio.toFixed(1)}%`;
 
-      // 總資產報酬表現
       const totalProfit = totalAssetTWD - portfolioRefTWD;
       const totalProfitRate = portfolioRefTWD > 0 ? (totalProfit / portfolioRefTWD) * 100 : 0;
       const sign = totalProfit >= 0 ? '+' : '';
@@ -928,48 +981,15 @@ function renderUI() {
       document.getElementById('portfolioReturnDisplay').innerText = `--`;
     }
   }
-}
+};
 
-function exportJSON() {
-  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `portfolio_ledger_backup_${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function previewImport(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data || !Array.isArray(data.assets)) throw new Error('檔案格式不符，缺少 assets 陣列');
-      importStagingData = data;
-      const previewEl = document.getElementById('importPreview');
-      previewEl.innerText = `檔案驗證通過！內含 ${data.assets.length} 筆資產紀錄。請點擊確認進行還原。`;
-      document.getElementById('btnConfirmRestore').style.display = 'block';
-    } catch (err) {
-      alert(`備份檔案讀取失敗：${err.message}`);
-      document.getElementById('importFileInput').value = '';
-      document.getElementById('btnConfirmRestore').style.display = 'none';
-    }
-  };
-  reader.readAsText(file);
-}
-
-function confirmRestore() {
-  if (!importStagingData) return;
-  state = importStagingData;
-  saveToLocal();
+// 頁面初次載入
+window.addEventListener('DOMContentLoaded', () => {
+  loadFromLocal();
   renderUI();
-  closeModal('backupModal');
-  alert('資料已成功還原！');
-}
+  // 啟動行情更新（即使後端暫時連不上也不會讓頁面功能壞掉）
+  refreshQuotes(true).catch(e => console.warn('初期行情抓取略過:', e));
+});
 </script>
 </body>
 </html>
