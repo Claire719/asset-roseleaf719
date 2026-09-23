@@ -96,8 +96,10 @@
     }
     .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
     
+    /* 股票代號樣式：字型微縮 (13.5px) */
     .item-title-tw { font-size: 13.5px; font-weight: 700; color: #475569; }
     .item-title-other { font-size: 15px; font-weight: 700; color: #1e293b; }
+    /* 中文股名樣式：醒目深藍 */
     .item-cname { font-size: 15px; font-weight: 700; color: var(--primary); margin-left: 6px; }
 
     .item-market { font-size: 11px; padding: 1px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 4px; }
@@ -227,7 +229,7 @@
 
   <!-- 代號快速檢索框 -->
   <div class="search-box">
-    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/中文名 (例: 00662, QQQ, USD)" oninput="renderUI()">
+    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/中文名 (例: 00662, 富邦, USD)" oninput="renderUI()">
     <button class="btn-edit" style="flex:none; padding:8px 12px;" onclick="clearSearch()">清除</button>
   </div>
 
@@ -317,7 +319,7 @@
   </div>
 </div>
 
-<!-- 手動微調 Modal -->
+<!-- 手動微調 Modal (整合：股數/金額 + 價格 + 指標) -->
 <div id="manualPriceModal" class="modal">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;" id="manualModalTitle">手動微調項目</h3>
@@ -380,6 +382,7 @@ const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev';
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
 
+// 完整的台股常見中文股名對照表
 const TW_STOCK_NAMES = {
   '00662': '富邦NASDAQ',
   '00865B': '國泰US短期公債',
@@ -505,6 +508,7 @@ function resolveTicker(market, symbol) {
   return symbol;
 }
 
+// 取得繁體中文股名 (強制清洗後綴並優先對應)
 function getDisplayName(market, symbol, remoteName) {
   if (market === 'TW') {
     const cleanSym = symbol.replace(/\.(TW|TWO)$/i, '').trim().toUpperCase();
@@ -515,33 +519,12 @@ function getDisplayName(market, symbol, remoteName) {
   return remoteName || '';
 }
 
-// 格式化交易所當地正式交易日期 (YYYY-MM-DD)
-function formatMarketDate(timestampSec, timezone) {
-  try {
-    const tz = timezone || 'America/New_York';
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    });
-    return formatter.format(new Date(timestampSec * 1000));
-  } catch (e) {
-    return new Date(timestampSec * 1000).toISOString().split('T')[0];
-  }
-}
-
-// 【修復核心】：美股/台股日線收盤價精準定位與交易所當地日期校正
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
-    const res = await fetch(fetchUrl, { 
-      signal: controller.signal,
-      cache: 'no-store'
-    });
+    const res = await fetch(`${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -555,47 +538,40 @@ async function fetchQuote(tickerKey) {
 
     if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
 
-    // 取得所有具有有效價格的索引
-    const validIndices = [];
-    for (let i = 0; i < closes.length; i++) {
+    let price = null;
+    let validTimestamp = null;
+    let validIdx = -1;
+    for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] !== null && closes[i] !== undefined) {
-        validIndices.push(i);
+        price = closes[i];
+        validTimestamp = timestamps[i];
+        validIdx = i;
+        break;
       }
     }
 
-    if (validIndices.length === 0) throw new Error('無有效歷史收盤價格');
-
-    let pickIdx = validIndices[validIndices.length - 1];
-
-    // 判斷是否處於即時交易時段中：
-    // 若當前正處於交易時段且這根 K 線是當日未定盤的即時 K 線，則退回一筆取上一日已收盤價格
-    const currentPeriod = meta.currentTradingPeriod?.regular;
-    if (currentPeriod && timestamps[pickIdx]) {
-      const kTime = timestamps[pickIdx];
-      const nowSec = Math.floor(Date.now() / 1000);
-      const isCurrentlyTrading = (nowSec >= currentPeriod.start && nowSec < currentPeriod.end);
-      if (isCurrentlyTrading && kTime >= currentPeriod.start && validIndices.length >= 2) {
-        pickIdx = validIndices[validIndices.length - 2];
-      }
+    if (price === null) {
+      price = meta.regularMarketPrice;
+      validTimestamp = meta.regularMarketTime;
     }
 
-    const price = closes[pickIdx];
-    const validTimestamp = timestamps[pickIdx];
+    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
 
-    // 依據交易所當地時區（如 America/New_York）格式化出正式日期
-    const tradeDate = formatMarketDate(validTimestamp, meta.exchangeTimezoneName);
-
-    // 歷史參考價提取 (前日、前月約21天前、前年)
     let prev1dPrice = null;
     let prev1mPrice = null;
     let prev1yPrice = null;
 
-    const currentPosInValid = validIndices.indexOf(pickIdx);
-    if (currentPosInValid > 0) {
-      prev1dPrice = closes[validIndices[currentPosInValid - 1]];
-      const mIdx = Math.max(0, currentPosInValid - 21);
-      prev1mPrice = closes[validIndices[mIdx]];
-      prev1yPrice = closes[validIndices[0]];
+    if (validIdx > 0) {
+      for (let i = validIdx - 1; i >= 0; i--) {
+        if (closes[i] !== null && closes[i] !== undefined) {
+          prev1dPrice = closes[i];
+          break;
+        }
+      }
+      const idx1m = Math.max(0, validIdx - 21);
+      prev1mPrice = closes[idx1m] ?? prev1dPrice;
+      const idx1y = 0;
+      prev1yPrice = closes[idx1y] ?? prev1dPrice;
     }
 
     const oldQuote = state.quotes[tickerKey] || {};
@@ -612,7 +588,7 @@ async function fetchQuote(tickerKey) {
       currency: meta.currency || (tickerKey.endsWith('.HK') ? 'HKD' : tickerKey.endsWith('.TW') || tickerKey.endsWith('.TWO') ? 'TWD' : 'USD'),
       date: tradeDate,
       name: meta.shortName || meta.symbol || tickerKey,
-      source: 'Yahoo Finance (正式收盤)',
+      source: 'Yahoo Finance',
       updatedAt: new Date().toLocaleTimeString(),
       error: null,
       isManual: false
@@ -921,6 +897,7 @@ function renderUI() {
       const currency = quote?.currency || (item.market === 'TW' ? 'TWD' : item.market === 'HK' ? 'HKD' : 'USD');
       const valTWD = item.valTWD;
 
+      // 取得中文股名
       const cName = getDisplayName(item.market, item.symbol, quote?.name);
 
       let yieldDisplay = '<span class="badge-warn">待補</span>';
@@ -936,7 +913,7 @@ function renderUI() {
       if (item.profitTWD !== null && item.profitRate !== null) {
         const sign = item.profitTWD >= 0 ? '+' : '';
         const colorClass = item.profitTWD >= 0 ? 'profit-up' : 'profit-down';
-        profitDisplay = `<span class="${colorClass}">${sign}$${Math.round(item.profitTWD).toLocaleString()} (${sign}${profitRate.toFixed(2)}%)</span>`;
+        profitDisplay = `<span class="${colorClass}">${sign}$${Math.round(item.profitTWD).toLocaleString()} (${sign}${item.profitRate.toFixed(2)}%)</span>`;
       }
 
       const ratioDisplay = (totalAssetTWD > 0 && valTWD !== null) ? ` (${((valTWD / totalAssetTWD) * 100).toFixed(1)}%)` : '';
