@@ -17,19 +17,19 @@
       --success: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 14px; padding-bottom: 80px; }
+    body { background: var(--bg); color: var(--text); padding: 16px; padding-bottom: 80px; }
     .container { max-width: 480px; margin: 0 auto; }
     
     .summary-card {
       background: var(--card-bg);
       border-radius: 16px;
-      padding: 18px;
-      margin-bottom: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
       border: 1px solid var(--border);
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
     .summary-card .label { font-size: 13px; color: var(--text-sub); }
-    .summary-card .val-large { font-size: 28px; font-weight: 800; color: var(--primary); margin: 4px 0 10px; }
+    .summary-card .val-large { font-size: 28px; font-weight: 800; color: var(--primary); margin: 6px 0 12px; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
     .summary-grid .sub-val { font-size: 15px; font-weight: 700; margin-top: 3px; }
     
@@ -38,17 +38,17 @@
       border: 1px solid var(--warning);
       padding: 10px 14px;
       border-radius: 8px;
-      font-size: 12px;
+      font-size: 13px;
       color: #b45309;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
       display: none;
     }
 
-    .btn-group { display: flex; gap: 8px; margin-bottom: 12px; }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
     button {
       flex: 1;
-      padding: 12px 14px;
-      font-size: 14px;
+      padding: 14px 16px;
+      font-size: 15px;
       font-weight: 600;
       border-radius: 10px;
       border: none;
@@ -59,63 +59,46 @@
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
-    .btn-danger { background: var(--danger); color: #fff; padding: 4px 8px; font-size: 11px; border-radius: 5px; }
-    .btn-edit { background: #f1f5f9; color: var(--text); padding: 4px 8px; font-size: 11px; border-radius: 5px; border: 1px solid var(--border); }
-
-    /* 代號檢索框樣式 */
-    .search-box {
-      margin-bottom: 10px;
-      display: flex;
-      gap: 6px;
-    }
-    .search-box input {
-      flex: 1;
-      padding: 9px 12px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 13.5px;
-      text-transform: uppercase;
-      background: #fff;
-    }
-    .search-box button {
-      flex: none;
-      padding: 9px 12px;
-      background: #f1f5f9;
-      color: var(--text);
-      font-size: 12px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
+    .btn-danger { background: var(--danger); color: #fff; padding: 5px 9px; font-size: 12px; border-radius: 6px; }
+    .btn-edit { background: #f1f5f9; color: var(--text); padding: 5px 9px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border); }
 
     .control-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       gap: 8px;
     }
-    .control-row select {
-      padding: 6px 10px;
+    .control-row select, .search-input {
+      padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #fff;
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 600;
     }
+    .search-box {
+      margin-bottom: 12px;
+      display: flex;
+      gap: 6px;
+    }
+    .search-input {
+      flex: 1;
+      text-transform: uppercase;
+    }
 
-    /* 個股卡片樣式 (精簡小字) */
     .card {
       background: var(--card-bg);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
       border: 1px solid var(--border);
     }
     .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-    .item-title { font-size: 15px; font-weight: 700; }
-    .item-market { font-size: 11px; padding: 2px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 4px; }
-    .item-data { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; line-height: 1.35; }
-    .item-meta { font-size: 10.5px; color: var(--text-sub); margin-top: 6px; line-height: 1.35; border-top: 1px dashed var(--border); padding-top: 5px; }
+    .item-title { font-size: 16px; font-weight: 700; }
+    .item-market { font-size: 11px; padding: 2px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 5px; }
+    .item-data { display: flex; justify-content: space-between; margin-top: 5px; font-size: 13px; }
+    .item-meta { font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4; border-top: 1px dashed var(--border); padding-top: 5px; }
 
     .badge-warn { color: var(--warning); font-weight: 600; }
     .badge-ok { color: var(--success); font-weight: 700; }
@@ -133,22 +116,22 @@
       width: 100%;
       max-width: 480px;
       border-radius: 16px 16px 0 0;
-      padding: 20px;
+      padding: 24px;
       max-height: 90vh;
       overflow-y: auto;
     }
-    .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
     .form-group input, .form-group select {
-      width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px;
+      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;
     }
 
     .footer-note {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-sub);
       text-align: center;
-      margin-top: 20px;
-      line-height: 1.4;
+      margin-top: 24px;
+      line-height: 1.5;
     }
   </style>
 </head>
@@ -159,8 +142,14 @@
 
   <!-- 總覽看板 -->
   <div class="summary-card">
-    <div class="label">淨資產 (TWD)</div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div class="label" id="netAssetLabel">淨資產 (TWD)</div>
+      <label style="font-size: 12px; font-weight: 600; color: #dc2626; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+        <input type="checkbox" id="excludeQQQI" onchange="renderUI()"> 排除 QQQI 試算
+      </label>
+    </div>
     <div class="val-large" id="netAssetDisplay">$0</div>
+    
     <div class="summary-grid">
       <div>
         <div class="label">總資產</div>
@@ -184,19 +173,31 @@
       </div>
     </div>
 
-    <!-- 類現金金額與比率 -->
+    <!-- Beta 區間統計一：0 < Beta < 1 及 1 <= Beta < 2 -->
     <div class="summary-grid" style="margin-top: 8px;">
       <div>
-        <div class="label">類現金金額 (Beta=0)</div>
-        <div class="sub-val" id="cashLikeTotalDisplay">$0</div>
+        <div class="label">0 &lt; Beta &lt; 1 金額</div>
+        <div class="sub-val" id="beta0to1Display">$0</div>
       </div>
       <div>
-        <div class="label">類現金佔總資產比率</div>
-        <div class="sub-val" id="cashLikeRatioDisplay">0.0%</div>
+        <div class="label">1 ≤ Beta &lt; 2 金額</div>
+        <div class="sub-val" id="beta1to2Display">$0</div>
       </div>
     </div>
 
-    <!-- 組合 Beta 與整體報酬 -->
+    <!-- Beta 區間統計二：Beta >= 2 及 類現金 (Beta = 0) -->
+    <div class="summary-grid" style="margin-top: 8px;">
+      <div>
+        <div class="label">Beta ≥ 2 金額 (槓桿)</div>
+        <div class="sub-val" id="betaGte2Display">$0</div>
+      </div>
+      <div>
+        <div class="label">類現金 (Beta=0)</div>
+        <div class="sub-val" id="cashLikeTotalDisplay">$0</div>
+      </div>
+    </div>
+
+    <!-- 組合 Beta 與整體報酬表現 -->
     <div class="summary-grid" style="margin-top: 8px;">
       <div>
         <div class="label">資產組合加權 Beta</div>
@@ -208,7 +209,7 @@
       </div>
     </div>
 
-    <div style="font-size: 10.5px; color: var(--text-sub); margin-top: 10px;" id="fxRateInfo">
+    <div style="font-size: 11px; color: var(--text-sub); margin-top: 10px;" id="fxRateInfo">
       匯率資訊：載入中...
     </div>
   </div>
@@ -222,8 +223,8 @@
 
   <!-- 代號快速檢索框 -->
   <div class="search-box">
-    <input type="text" id="searchKeyword" placeholder="🔍 代號或幣別檢索 (如: QQQ, 00662, USD)" oninput="renderUI()">
-    <button onclick="clearSearch()">清除</button>
+    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號 (例: QQQ, 00662, USD)" oninput="renderUI()">
+    <button class="btn-edit" style="flex:none; padding:8px 12px;" onclick="clearSearch()">清除</button>
   </div>
 
   <!-- 控制列：排序與報酬基準 -->
@@ -239,7 +240,7 @@
       </select>
     </div>
     <div>
-      <span style="font-size: 12px; color: var(--text-sub);">報酬基準：</span>
+      <span style="font-size: 12px; color: var(--text-sub);">基準：</span>
       <select id="returnBenchmark" onchange="renderUI()">
         <option value="1D">前一日</option>
         <option value="1M">前一個月</option>
@@ -252,14 +253,14 @@
   <div id="assetList"></div>
 
   <div class="footer-note">
-    💡 提示：債券 ETF (尾綴帶 B) 自動對接櫃買中心。資料存放於本機瀏覽器，請定期備份。
+    💡 提示：勾選「排除 QQQI」可在頂部看板查看排除特定標的後的資產總額與波動結構。
   </div>
 </div>
 
 <!-- 新增資產 Modal -->
 <div id="addAssetModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 14px; font-size: 16px;">新增項目</h3>
+    <h3 style="margin-bottom: 16px;">新增項目</h3>
     <div class="form-group">
       <label>類別</label>
       <select id="itemType" onchange="toggleFormType()">
@@ -280,7 +281,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>代號 (例: 00662, 00696B, QQQ, 2834)</label>
+        <label>代號 (例: 00662, 00696B, QQQ, QQQI, 2834)</label>
         <input type="text" id="stockSymbol" placeholder="請輸入代號" style="text-transform: uppercase;">
       </div>
       <div class="form-group">
@@ -305,7 +306,7 @@
       </div>
     </div>
 
-    <div class="btn-group" style="margin-top: 16px;">
+    <div class="btn-group" style="margin-top: 20px;">
       <button class="btn-outline" onclick="closeModal('addAssetModal')">取消</button>
       <button class="btn-primary" onclick="saveItem()">儲存</button>
     </div>
@@ -315,7 +316,7 @@
 <!-- 修改數量 Modal -->
 <div id="editQtyModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 14px; font-size: 16px;">修改持有數量</h3>
+    <h3 style="margin-bottom: 16px;">修改持有數量</h3>
     <input type="hidden" id="editItemId">
     <div class="form-group">
       <label id="editItemLabel">持有數量</label>
@@ -331,7 +332,7 @@
 <!-- 手動補登價格與資訊 Modal -->
 <div id="manualPriceModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 14px; font-size: 16px;">手動設定價格與指標</h3>
+    <h3 style="margin-bottom: 16px;">手動設定價格與指標</h3>
     <input type="hidden" id="manualQuoteKey">
     <div class="form-group">
       <label>收盤價 (原幣)</label>
@@ -359,15 +360,15 @@
 <!-- 備份還原 Modal -->
 <div id="backupModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 14px; font-size: 16px;">備份與還原</h3>
+    <h3 style="margin-bottom: 16px;">備份與還原</h3>
     <div class="form-group">
       <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="exportJSON()">下載 JSON 備份檔</button>
     </div>
-    <div class="form-group" style="margin-top: 14px;">
+    <div class="form-group" style="margin-top: 16px;">
       <label>匯入備份 (覆蓋還原)</label>
       <input type="file" id="importFileInput" accept=".json" onchange="previewImport(event)">
     </div>
-    <div id="importPreview" style="font-size: 12px; color: var(--text-sub); margin-bottom: 14px;"></div>
+    <div id="importPreview" style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;"></div>
     <div class="btn-group">
       <button class="btn-outline" onclick="closeModal('backupModal')">關閉</button>
       <button id="btnConfirmRestore" class="btn-danger" style="display:none;" onclick="confirmRestore()">確認覆蓋還原</button>
@@ -493,7 +494,6 @@ function deleteItem(id) {
   }
 }
 
-// 針對台股債券型 ETF (結尾為 B) 以及 6 開頭櫃買標的，自動判定為 .TWO
 function resolveTicker(market, symbol) {
   if (market === 'US') return symbol;
   if (market === 'HK') {
@@ -515,11 +515,7 @@ async function fetchQuote(tickerKey) {
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
-    const res = await fetch(fetchUrl, { 
-      signal: controller.signal,
-      cache: 'no-store'
-    });
+    const res = await fetch(`${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -531,40 +527,27 @@ async function fetchQuote(tickerKey) {
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
 
+    if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
+
     let price = null;
     let validTimestamp = null;
     let validIdx = -1;
-
-    // 優先採用 meta 最新正式價格與時間戳
-    if (meta.regularMarketPrice !== undefined && meta.regularMarketPrice !== null) {
-      price = meta.regularMarketPrice;
-      validTimestamp = meta.regularMarketTime || timestamps[timestamps.length - 1];
-    }
-
-    // 由後往前尋找最新一筆有效收盤價
     for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] !== null && closes[i] !== undefined) {
-        if (price === null) {
-          price = closes[i];
-          validTimestamp = timestamps[i];
-        }
+        price = closes[i];
+        validTimestamp = timestamps[i];
         validIdx = i;
         break;
       }
     }
 
-    if (price === null) throw new Error('無收盤價格資料');
+    if (price === null) {
+      price = meta.regularMarketPrice;
+      validTimestamp = meta.regularMarketTime;
+    }
 
-    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)
-    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : 0;
-    const localMs = (validTimestamp + gmtOffset) * 1000;
-    const localDate = new Date(localMs);
-    const y = localDate.getUTCFullYear();
-    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(localDate.getUTCDate()).padStart(2, '0');
-    const tradeDate = `${y}-${m}-${d}`;
+    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
 
-    // 歷史基準價格提取 (前日、前月、前年)
     let prev1dPrice = null;
     let prev1mPrice = null;
     let prev1yPrice = null;
@@ -611,10 +594,7 @@ async function fetchExchangeRates() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {
-    const res = await fetch(`https://open.er-api.com/v6/latest/USD?_t=${Date.now()}`, { 
-      signal: controller.signal,
-      cache: 'no-store'
-    });
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
     clearTimeout(timeout);
     if (!res.ok) throw new Error('匯率服務連線失敗');
     const data = await res.json();
@@ -720,12 +700,18 @@ function renderUI() {
   const listEl = document.getElementById('assetList');
   listEl.innerHTML = '';
 
+  const excludeQQQI = document.getElementById('excludeQQQI')?.checked || false;
+  document.getElementById('netAssetLabel').innerText = excludeQQQI ? '淨資產 (排除QQQI)' : '淨資產 (TWD)';
+
   let totalAssetTWD = 0;
   let totalDebtTWD = 0;
   let cashLikeTWD = 0; 
+  let beta0to1TWD = 0;   // 0 < Beta < 1
+  let beta1to2TWD = 0;   // 1 <= Beta < 2
+  let betaGte2TWD = 0;   // Beta >= 2
   let weightedBetaSum = 0;
   let portfolioRefTWD = 0;
-  let totalEstimatedDividendTWD = 0;
+  let totalEstimatedDividendTWD = 0; 
 
   let hasIncomplete = false;
   let hasMissingBeta = false;
@@ -743,9 +729,9 @@ function renderUI() {
 
   const sortOpt = document.getElementById('sortOption').value;
   const benchmarkOpt = document.getElementById('returnBenchmark').value;
-  const keyword = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
+  const searchKey = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
 
-  // 計算每筆項目資料並支援排序
+  // 計算每筆資產
   const enrichedAssets = state.assets.map(item => {
     let valTWD = null;
     let quote = null;
@@ -797,8 +783,12 @@ function renderUI() {
     return 0;
   });
 
-  // 全局統計（總資產與加權數據保持全體統計，不隨搜尋條件失真）
+  // 總額與 Beta 區間統計 (支援排除 QQQI)
   enrichedAssets.forEach(item => {
+    if (excludeQQQI && item.type === 'STOCK' && item.symbol.toUpperCase() === 'QQQI') {
+      return;
+    }
+
     if (item.valTWD !== null) {
       if (item.type === 'STOCK') {
         totalAssetTWD += item.valTWD;
@@ -806,9 +796,18 @@ function renderUI() {
 
         const beta = item.quote?.beta;
         if (beta !== null && beta !== undefined && !isNaN(beta)) {
-          weightedBetaSum += item.valTWD * beta;
-          if (Number(beta) === 0) {
+          const bNum = Number(beta);
+          weightedBetaSum += item.valTWD * bNum;
+
+          // 四種 Beta 區間統計
+          if (bNum === 0) {
             cashLikeTWD += item.valTWD;
+          } else if (bNum > 0 && bNum < 1.0) {
+            beta0to1TWD += item.valTWD;
+          } else if (bNum >= 1.0 && bNum < 2.0) {
+            beta1to2TWD += item.valTWD;
+          } else if (bNum >= 2.0) {
+            betaGte2TWD += item.valTWD;
           }
         } else {
           hasMissingBeta = true;
@@ -832,22 +831,17 @@ function renderUI() {
     }
   });
 
-  // 根據代號或幣別進行即時檢索過濾
-  const displayedAssets = enrichedAssets.filter(item => {
-    if (!keyword) return true;
+  // 明細卡片渲染 (支援快速檢索篩選)
+  const filteredForDisplay = enrichedAssets.filter(item => {
+    if (!searchKey) return true;
     if (item.type === 'STOCK') {
-      return (item.symbol && item.symbol.toUpperCase().includes(keyword)) || 
-             (item.market && item.market.toUpperCase().includes(keyword)) ||
-             (item.quote?.name && item.quote.name.toUpperCase().includes(keyword));
+      return item.symbol.toUpperCase().includes(searchKey) || (item.quote?.name || '').toUpperCase().includes(searchKey);
     } else {
-      return (item.currency && item.currency.toUpperCase().includes(keyword)) ||
-             (item.type === 'CASH' && '現金'.includes(keyword)) ||
-             (item.type === 'DEBT' && '負債'.includes(keyword));
+      return item.currency.toUpperCase().includes(searchKey) || (item.type === 'CASH' ? '現金' : '負債').includes(searchKey);
     }
   });
 
-  // 渲染卡片 (精簡小字版)
-  displayedAssets.forEach(item => {
+  filteredForDisplay.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -879,38 +873,45 @@ function renderUI() {
       const ratioDisplay = (totalAssetTWD > 0 && valTWD !== null) ? ` (${((valTWD / totalAssetTWD) * 100).toFixed(1)}%)` : '';
       const estDivDisplay = item.estDivTWD > 0 ? `約 $${Math.round(item.estDivTWD).toLocaleString()} TWD` : '無';
 
+      const isExcluded = (excludeQQQI && item.symbol.toUpperCase() === 'QQQI');
+
       card.innerHTML = `
         <div class="item-header">
           <div>
             <span class="item-title">${item.symbol}</span>
             <span class="item-market">${item.market}</span>
-            <span style="font-size:11px; color:var(--text-sub);">${quote?.name ? `(${quote.name})` : ''}</span>
+            ${isExcluded ? '<span style="font-size:11px; padding:2px 5px; background:#fee2e2; color:#dc2626; border-radius:4px; font-weight:700;">已自總資產排除</span>' : ''}
+            <span style="font-size:12px; color:var(--text-sub);">${quote?.name ? `(${quote.name})` : ''}</span>
           </div>
-          <div style="display:flex; gap:5px;">
+          <div style="display:flex; gap:6px;">
             <button class="btn-edit" onclick="promptEditQty('${item.id}')">修正股數</button>
             <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
           </div>
         </div>
         <div class="item-data">
-          <span>持有：${item.qty.toLocaleString()} 股</span>
-          <span>收盤：${price !== null && price !== undefined ? `${price}${currency}` : '<span class="badge-warn">待補</span>'}</span>
+          <span>持有股數：${item.qty.toLocaleString()} 股</span>
+          <span>收盤價：${price !== null && price !== undefined ? `${price}${currency}` : '<span class="badge-warn">待補</span>'}</span>
         </div>
         <div class="item-data">
-          <span>Beta (5年)：${beta !== null && beta !== undefined ? `<strong>${beta}</strong>` : '<span class="badge-warn">待補</span>'}</span>
-          <span>殖利率：${yieldDisplay}</span>
+          <span>Beta (5年平均)：${beta !== null && beta !== undefined ? `<strong>${beta}</strong>` : '<span class="badge-warn">待補</span>'}</span>
+          <span>現金殖利率：${yieldDisplay}</span>
         </div>
         <div class="item-data">
-          <span>預估配息：<strong>${estDivDisplay}</strong></span>
-          <span>較${benchmarkOpt === '1D' ? '前日' : benchmarkOpt === '1M' ? '前月' : '前年'}：${profitDisplay}</span>
+          <span>預估明年配息：</span>
+          <span><strong>${estDivDisplay}</strong></span>
         </div>
-        <div class="item-data" style="font-weight:700; font-size:14px; margin-top:6px;">
+        <div class="item-data">
+          <span>較${benchmarkOpt === '1D' ? '前一日' : benchmarkOpt === '1M' ? '前一個月' : '前一年'}：</span>
+          <span>${profitDisplay}</span>
+        </div>
+        <div class="item-data" style="font-weight:700; font-size:15px; margin-top:8px;">
           <span>市值 (TWD)：</span>
-          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:11px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">無法估算</span>'}</span>
+          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:12px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">無法估算</span>'}</span>
         </div>
         <div class="item-meta">
           ${price !== null && price !== undefined ? 
-            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">微調</a>` : 
-            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">補登</a>`
+            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動微調</a>` : 
+            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動補登</a>`
           }
         </div>
       `;
@@ -924,7 +925,7 @@ function renderUI() {
           <div>
             <span class="item-title">${isDebt ? '負債' : '現金'} (${item.currency})</span>
           </div>
-          <div style="display:flex; gap:5px;">
+          <div style="display:flex; gap:6px;">
             <button class="btn-edit" onclick="promptEditQty('${item.id}')">修改金額</button>
             <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
           </div>
@@ -933,18 +934,14 @@ function renderUI() {
           <span>原幣金額：</span>
           <span>${item.amount.toLocaleString()} ${item.currency}</span>
         </div>
-        <div class="item-data" style="font-weight:700; font-size:14px; margin-top:4px;">
+        <div class="item-data" style="font-weight:700; font-size:15px;">
           <span>折合 TWD：</span>
-          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:11px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">缺少匯率</span>'}</span>
+          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:12px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">缺少匯率</span>'}</span>
         </div>
       `;
     }
     listEl.appendChild(card);
   });
-
-  if (displayedAssets.length === 0 && state.assets.length > 0) {
-    listEl.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-sub); font-size:13px;">找不到與「${keyword}」相符的標的代號</div>`;
-  }
 
   const banner = document.getElementById('statusBanner');
   if (hasIncomplete) {
@@ -954,19 +951,36 @@ function renderUI() {
     document.getElementById('totalAssetDisplay').innerText = `已計：$${Math.round(totalAssetTWD).toLocaleString()}`;
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
     document.getElementById('portfolioBetaDisplay').innerHTML = `<span class="badge-warn">無法計算</span>`;
-    document.getElementById('cashLikeRatioDisplay').innerText = `--`;
     document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()}`;
+    document.getElementById('beta0to1Display').innerText = `$${Math.round(beta0to1TWD).toLocaleString()}`;
+    document.getElementById('beta1to2Display').innerText = `$${Math.round(beta1to2TWD).toLocaleString()}`;
+    document.getElementById('betaGte2Display').innerText = `$${Math.round(betaGte2TWD).toLocaleString()}`;
     document.getElementById('estimatedDividendDisplay').innerText = `--`;
     document.getElementById('portfolioYieldDisplay').innerText = `--`;
-    document.getElementById('portfolioReturnDisplay').innerText = `--`;
   } else {
     banner.style.display = 'none';
     const net = totalAssetTWD - totalDebtTWD;
     document.getElementById('netAssetDisplay').innerText = `$${Math.round(net).toLocaleString()}`;
     document.getElementById('totalAssetDisplay').innerText = `$${Math.round(totalAssetTWD).toLocaleString()}`;
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
-    document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()}`;
+    
+    // 類現金金額
+    const cashRatio = totalAssetTWD > 0 ? ((cashLikeTWD / totalAssetTWD) * 100).toFixed(1) : 0;
+    document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()} (${cashRatio}%)`;
 
+    // 0 < Beta < 1 金額
+    const beta0to1Ratio = totalAssetTWD > 0 ? ((beta0to1TWD / totalAssetTWD) * 100).toFixed(1) : 0;
+    document.getElementById('beta0to1Display').innerText = `$${Math.round(beta0to1TWD).toLocaleString()} (${beta0to1Ratio}%)`;
+
+    // 1 <= Beta < 2 金額
+    const beta1to2Ratio = totalAssetTWD > 0 ? ((beta1to2TWD / totalAssetTWD) * 100).toFixed(1) : 0;
+    document.getElementById('beta1to2Display').innerText = `$${Math.round(beta1to2TWD).toLocaleString()} (${beta1to2Ratio}%)`;
+
+    // Beta >= 2 金額 (槓桿)
+    const betaGte2Ratio = totalAssetTWD > 0 ? ((betaGte2TWD / totalAssetTWD) * 100).toFixed(1) : 0;
+    document.getElementById('betaGte2Display').innerText = `$${Math.round(betaGte2TWD).toLocaleString()} (${betaGte2Ratio}%)`;
+
+    // 預估配息金額與總平均殖利率
     document.getElementById('estimatedDividendDisplay').innerText = `$${Math.round(totalEstimatedDividendTWD).toLocaleString()}`;
     if (totalAssetTWD > 0) {
       const avgYield = (totalEstimatedDividendTWD / totalAssetTWD) * 100;
@@ -975,6 +989,7 @@ function renderUI() {
       document.getElementById('portfolioYieldDisplay').innerText = `0.00%`;
     }
 
+    // 總資產加權 Beta
     if (totalAssetTWD > 0) {
       if (hasMissingBeta) {
         document.getElementById('portfolioBetaDisplay').innerHTML = `<span class="badge-warn">Beta不完整</span>`;
@@ -982,10 +997,8 @@ function renderUI() {
         const portfolioBeta = weightedBetaSum / totalAssetTWD;
         document.getElementById('portfolioBetaDisplay').innerText = portfolioBeta.toFixed(2);
       }
-      
-      const cashRatio = (cashLikeTWD / totalAssetTWD) * 100;
-      document.getElementById('cashLikeRatioDisplay').innerText = `${cashRatio.toFixed(1)}%`;
 
+      // 總資產報酬表現
       const totalProfit = totalAssetTWD - portfolioRefTWD;
       const totalProfitRate = portfolioRefTWD > 0 ? (totalProfit / portfolioRefTWD) * 100 : 0;
       const sign = totalProfit >= 0 ? '+' : '';
@@ -993,7 +1006,6 @@ function renderUI() {
       document.getElementById('portfolioReturnDisplay').innerHTML = `<span class="${colorClass}">${sign}$${Math.round(totalProfit).toLocaleString()} (${sign}${totalProfitRate.toFixed(2)}%)</span>`;
     } else {
       document.getElementById('portfolioBetaDisplay').innerText = `0.00`;
-      document.getElementById('cashLikeRatioDisplay').innerText = `0.0%`;
       document.getElementById('portfolioReturnDisplay').innerText = `--`;
     }
   }
