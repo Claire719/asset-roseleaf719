@@ -227,7 +227,7 @@
 
   <!-- 代號快速檢索框 -->
   <div class="search-box">
-    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/中文名 (例: 00662, 富邦, USD)" oninput="renderUI()">
+    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/中文名 (例: 00662, QQQ, USD)" oninput="renderUI()">
     <button class="btn-edit" style="flex:none; padding:8px 12px;" onclick="clearSearch()">清除</button>
   </div>
 
@@ -257,7 +257,7 @@
   <div id="assetList"></div>
 
   <div class="footer-note">
-    💡 提示：本系統一律鎖定「最近已完成交易日收盤價」，盤中不抓取跳動之即時現盤價。
+    💡 提示：點擊各標的下方「手動微調」即可同時修改股數、價格與各項指標。
   </div>
 </div>
 
@@ -317,7 +317,7 @@
   </div>
 </div>
 
-<!-- 手動微調 Modal (整合：股數/金額 + 價格 + 指標) -->
+<!-- 手動微調 Modal -->
 <div id="manualPriceModal" class="modal">
   <div class="modal-content">
     <h3 style="margin-bottom: 16px;" id="manualModalTitle">手動微調項目</h3>
@@ -515,14 +515,17 @@ function getDisplayName(market, symbol, remoteName) {
   return remoteName || '';
 }
 
-// 【鎖定前一交易日收盤價核心函式】
+// 【修復核心】：以日 K 線真實收盤價為準，杜絕盤中現價干擾與錯誤的 chartPreviousClose
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
     const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
-    const res = await fetch(fetchUrl, { signal: controller.signal, cache: 'no-store' });
+    const res = await fetch(fetchUrl, { 
+      signal: controller.signal,
+      cache: 'no-store'
+    });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -533,68 +536,54 @@ async function fetchQuote(tickerKey) {
     const meta = result.meta;
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
-    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : -14400; // 預設美東
 
     if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
 
-    // 判斷當前市場狀態
-    const currentTradingPeriod = meta.currentTradingPeriod;
-    const regStart = currentTradingPeriod?.regular?.start;
-    const regEnd = currentTradingPeriod?.regular?.end;
-    const nowSec = Math.floor(Date.now() / 1000);
-
-    // 是否正在開盤中 (美股/台股盤中)
-    const isLive = regStart && regEnd && (nowSec >= regStart && nowSec < regEnd);
-
-    let price = null;
-    let validTimestamp = null;
-    let validIdx = -1;
-
-    // 依據規則：若開盤中，絕不抓取跳動中的現盤價，直接鎖定上個交易日已完成的收盤價
-    if (isLive && meta.chartPreviousClose) {
-      price = meta.chartPreviousClose;
-      // 日期鎖定在前一日
-      const prevDaySec = regStart - 3600 * 12;
-      validTimestamp = prevDaySec;
-      // 尋找對應的 K 線索引
-      validIdx = Math.max(0, closes.length - 2);
-    } else {
-      // 非盤中（休市或已收盤）：從歷史日 K 線由後往前找出最後一筆已定盤收盤價
-      for (let i = closes.length - 1; i >= 0; i--) {
-        if (closes[i] !== null && closes[i] !== undefined) {
-          price = closes[i];
-          validTimestamp = timestamps[i];
-          validIdx = i;
-          break;
-        }
-      }
-      if (price === null) {
-        price = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
-        validTimestamp = meta.regularMarketTime;
+    // 取得所有具有有效價格的索引
+    const validIndices = [];
+    for (let i = 0; i < closes.length; i++) {
+      if (closes[i] !== null && closes[i] !== undefined) {
+        validIndices.push(i);
       }
     }
 
-    // 交易所當地交易日計算 (利用 gmtoffset 精確換算，防止時差縮減一天)
-    const localSec = (validTimestamp || Math.floor(Date.now() / 1000)) + gmtOffset;
-    const localDate = new Date(localSec * 1000);
-    const tradeDate = localDate.toISOString().split('T')[0];
+    if (validIndices.length === 0) throw new Error('無有效歷史收盤價格');
 
-    // 歷史基準價格提取 (前日、前月、前年)
+    let pickIdx = validIndices[validIndices.length - 1];
+
+    // 盤中過濾機制：
+    // 若最後一筆的時間戳記是「今天且尚在開盤中（currentTradingPeriod 未結束）」
+    // 則回退一筆，取「前一個已完成收盤的交易日」
+    const currentPeriod = meta.currentTradingPeriod?.regular;
+    if (currentPeriod && timestamps[pickIdx]) {
+      const kTime = timestamps[pickIdx];
+      const nowSec = Math.floor(Date.now() / 1000);
+      const isCurrentlyTrading = (nowSec >= currentPeriod.start && nowSec < currentPeriod.end);
+      // 若當前正處於交易時段且這根 K 線是當日 K 線，回退一筆取已完成的前一日收盤
+      if (isCurrentlyTrading && kTime >= currentPeriod.start && validIndices.length >= 2) {
+        pickIdx = validIndices[validIndices.length - 2];
+      }
+    }
+
+    const price = closes[pickIdx];
+    const validTimestamp = timestamps[pickIdx];
+
+    // 依交易所時區精確換算該交易日 (YYYY-MM-DD)
+    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : -14400;
+    const localMarketDateObj = new Date((validTimestamp + gmtOffset) * 1000);
+    const tradeDate = localMarketDateObj.toISOString().split('T')[0];
+
+    // 歷史參考價提取 (前日、前月約21天前、前年)
     let prev1dPrice = null;
     let prev1mPrice = null;
     let prev1yPrice = null;
 
-    if (validIdx > 0) {
-      for (let i = validIdx - 1; i >= 0; i--) {
-        if (closes[i] !== null && closes[i] !== undefined) {
-          prev1dPrice = closes[i];
-          break;
-        }
-      }
-      const idx1m = Math.max(0, validIdx - 21);
-      prev1mPrice = closes[idx1m] ?? prev1dPrice;
-      const idx1y = 0;
-      prev1yPrice = closes[idx1y] ?? prev1dPrice;
+    const currentPosInValid = validIndices.indexOf(pickIdx);
+    if (currentPosInValid > 0) {
+      prev1dPrice = closes[validIndices[currentPosInValid - 1]];
+      const mIdx = Math.max(0, currentPosInValid - 21);
+      prev1mPrice = closes[validIndices[mIdx]];
+      prev1yPrice = closes[validIndices[0]];
     }
 
     const oldQuote = state.quotes[tickerKey] || {};
@@ -611,7 +600,7 @@ async function fetchQuote(tickerKey) {
       currency: meta.currency || (tickerKey.endsWith('.HK') ? 'HKD' : tickerKey.endsWith('.TW') || tickerKey.endsWith('.TWO') ? 'TWD' : 'USD'),
       date: tradeDate,
       name: meta.shortName || meta.symbol || tickerKey,
-      source: 'Yahoo Finance (已完成交易日收盤價)',
+      source: 'Yahoo Finance (正式收盤)',
       updatedAt: new Date().toLocaleTimeString(),
       error: null,
       isManual: false
@@ -645,7 +634,7 @@ async function fetchExchangeRates() {
 async function refreshQuotes(silent = false) {
   if (!silent) {
     document.getElementById('statusBanner').style.display = 'block';
-    document.getElementById('statusBanner').innerText = '正在背景抓取最新收盤行情、Beta、殖利率與匯率...';
+    document.getElementById('statusBanner').innerText = '正在背景抓取行情、Beta、殖利率與匯率...';
   }
 
   await fetchExchangeRates();
