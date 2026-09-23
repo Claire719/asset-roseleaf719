@@ -44,7 +44,7 @@
       display: none;
     }
 
-    .btn-group { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 12px; }
     button {
       flex: 1;
       padding: 12px 14px;
@@ -62,6 +62,31 @@
     .btn-danger { background: var(--danger); color: #fff; padding: 4px 8px; font-size: 11px; border-radius: 5px; }
     .btn-edit { background: #f1f5f9; color: var(--text); padding: 4px 8px; font-size: 11px; border-radius: 5px; border: 1px solid var(--border); }
 
+    /* 代號檢索框樣式 */
+    .search-box {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 13.5px;
+      text-transform: uppercase;
+      background: #fff;
+    }
+    .search-box button {
+      flex: none;
+      padding: 9px 12px;
+      background: #f1f5f9;
+      color: var(--text);
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
     .control-row {
       display: flex;
       justify-content: space-between;
@@ -74,11 +99,11 @@
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #fff;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
     }
 
-    /* 縮小後的個股卡片樣式 */
+    /* 個股卡片樣式 (精簡小字) */
     .card {
       background: var(--card-bg);
       border-radius: 10px;
@@ -193,6 +218,12 @@
     <button class="btn-primary" onclick="refreshQuotes()">更新價格</button>
     <button class="btn-outline" onclick="openModal('addAssetModal')">新增項目</button>
     <button class="btn-outline" onclick="openModal('backupModal')">備份/還原</button>
+  </div>
+
+  <!-- 代號快速檢索框 -->
+  <div class="search-box">
+    <input type="text" id="searchKeyword" placeholder="🔍 代號或幣別檢索 (如: QQQ, 00662, USD)" oninput="renderUI()">
+    <button onclick="clearSearch()">清除</button>
   </div>
 
   <!-- 控制列：排序與報酬基準 -->
@@ -392,6 +423,11 @@ function toggleFormType() {
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+function clearSearch() {
+  document.getElementById('searchKeyword').value = '';
+  renderUI();
+}
+
 function saveItem() {
   const type = document.getElementById('itemType').value;
   const id = Date.now().toString();
@@ -479,7 +515,11 @@ async function fetchQuote(tickerKey) {
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const res = await fetch(`${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}`, { signal: controller.signal });
+    const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { 
+      signal: controller.signal,
+      cache: 'no-store'
+    });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -491,26 +531,38 @@ async function fetchQuote(tickerKey) {
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
 
-    if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
-
     let price = null;
     let validTimestamp = null;
     let validIdx = -1;
+
+    // 優先採用 meta 最新正式價格與時間戳
+    if (meta.regularMarketPrice !== undefined && meta.regularMarketPrice !== null) {
+      price = meta.regularMarketPrice;
+      validTimestamp = meta.regularMarketTime || timestamps[timestamps.length - 1];
+    }
+
+    // 由後往前尋找最新一筆有效收盤價
     for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] !== null && closes[i] !== undefined) {
-        price = closes[i];
-        validTimestamp = timestamps[i];
+        if (price === null) {
+          price = closes[i];
+          validTimestamp = timestamps[i];
+        }
         validIdx = i;
         break;
       }
     }
 
-    if (price === null) {
-      price = meta.regularMarketPrice;
-      validTimestamp = meta.regularMarketTime;
-    }
+    if (price === null) throw new Error('無收盤價格資料');
 
-    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
+    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)
+    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : 0;
+    const localMs = (validTimestamp + gmtOffset) * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(localDate.getUTCDate()).padStart(2, '0');
+    const tradeDate = `${y}-${m}-${d}`;
 
     // 歷史基準價格提取 (前日、前月、前年)
     let prev1dPrice = null;
@@ -559,7 +611,10 @@ async function fetchExchangeRates() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {
-    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
+    const res = await fetch(`https://open.er-api.com/v6/latest/USD?_t=${Date.now()}`, { 
+      signal: controller.signal,
+      cache: 'no-store'
+    });
     clearTimeout(timeout);
     if (!res.ok) throw new Error('匯率服務連線失敗');
     const data = await res.json();
@@ -670,7 +725,7 @@ function renderUI() {
   let cashLikeTWD = 0; 
   let weightedBetaSum = 0;
   let portfolioRefTWD = 0;
-  let totalEstimatedDividendTWD = 0; 
+  let totalEstimatedDividendTWD = 0;
 
   let hasIncomplete = false;
   let hasMissingBeta = false;
@@ -688,7 +743,9 @@ function renderUI() {
 
   const sortOpt = document.getElementById('sortOption').value;
   const benchmarkOpt = document.getElementById('returnBenchmark').value;
+  const keyword = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
 
+  // 計算每筆項目資料並支援排序
   const enrichedAssets = state.assets.map(item => {
     let valTWD = null;
     let quote = null;
@@ -725,6 +782,7 @@ function renderUI() {
     return { ...item, valTWD, quote, profitTWD, profitRate, refPrice, estDivTWD };
   });
 
+  // 排序
   enrichedAssets.sort((a, b) => {
     if (sortOpt === 'AMOUNT_DESC') return (b.valTWD || 0) - (a.valTWD || 0);
     if (sortOpt === 'QTY_DESC') return (b.qty || b.amount || 0) - (a.qty || a.amount || 0);
@@ -739,6 +797,7 @@ function renderUI() {
     return 0;
   });
 
+  // 全局統計（總資產與加權數據保持全體統計，不隨搜尋條件失真）
   enrichedAssets.forEach(item => {
     if (item.valTWD !== null) {
       if (item.type === 'STOCK') {
@@ -773,7 +832,22 @@ function renderUI() {
     }
   });
 
-  enrichedAssets.forEach(item => {
+  // 根據代號或幣別進行即時檢索過濾
+  const displayedAssets = enrichedAssets.filter(item => {
+    if (!keyword) return true;
+    if (item.type === 'STOCK') {
+      return (item.symbol && item.symbol.toUpperCase().includes(keyword)) || 
+             (item.market && item.market.toUpperCase().includes(keyword)) ||
+             (item.quote?.name && item.quote.name.toUpperCase().includes(keyword));
+    } else {
+      return (item.currency && item.currency.toUpperCase().includes(keyword)) ||
+             (item.type === 'CASH' && '現金'.includes(keyword)) ||
+             (item.type === 'DEBT' && '負債'.includes(keyword));
+    }
+  });
+
+  // 渲染卡片 (精簡小字版)
+  displayedAssets.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -867,6 +941,10 @@ function renderUI() {
     }
     listEl.appendChild(card);
   });
+
+  if (displayedAssets.length === 0 && state.assets.length > 0) {
+    listEl.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-sub); font-size:13px;">找不到與「${keyword}」相符的標的代號</div>`;
+  }
 
   const banner = document.getElementById('statusBanner');
   if (hasIncomplete) {
