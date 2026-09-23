@@ -515,7 +515,23 @@ function getDisplayName(market, symbol, remoteName) {
   return remoteName || '';
 }
 
-// 【修復核心】：以日 K 線真實收盤價為準，杜絕盤中現價干擾與錯誤的 chartPreviousClose
+// 格式化交易所當地正式交易日期 (YYYY-MM-DD)
+function formatMarketDate(timestampSec, timezone) {
+  try {
+    const tz = timezone || 'America/New_York';
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(new Date(timestampSec * 1000));
+  } catch (e) {
+    return new Date(timestampSec * 1000).toISOString().split('T')[0];
+  }
+}
+
+// 【修復核心】：美股/台股日線收盤價精準定位與交易所當地日期校正
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -551,15 +567,13 @@ async function fetchQuote(tickerKey) {
 
     let pickIdx = validIndices[validIndices.length - 1];
 
-    // 盤中過濾機制：
-    // 若最後一筆的時間戳記是「今天且尚在開盤中（currentTradingPeriod 未結束）」
-    // 則回退一筆，取「前一個已完成收盤的交易日」
+    // 判斷是否處於即時交易時段中：
+    // 若當前正處於交易時段且這根 K 線是當日未定盤的即時 K 線，則退回一筆取上一日已收盤價格
     const currentPeriod = meta.currentTradingPeriod?.regular;
     if (currentPeriod && timestamps[pickIdx]) {
       const kTime = timestamps[pickIdx];
       const nowSec = Math.floor(Date.now() / 1000);
       const isCurrentlyTrading = (nowSec >= currentPeriod.start && nowSec < currentPeriod.end);
-      // 若當前正處於交易時段且這根 K 線是當日 K 線，回退一筆取已完成的前一日收盤
       if (isCurrentlyTrading && kTime >= currentPeriod.start && validIndices.length >= 2) {
         pickIdx = validIndices[validIndices.length - 2];
       }
@@ -568,10 +582,8 @@ async function fetchQuote(tickerKey) {
     const price = closes[pickIdx];
     const validTimestamp = timestamps[pickIdx];
 
-    // 依交易所時區精確換算該交易日 (YYYY-MM-DD)
-    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : -14400;
-    const localMarketDateObj = new Date((validTimestamp + gmtOffset) * 1000);
-    const tradeDate = localMarketDateObj.toISOString().split('T')[0];
+    // 依據交易所當地時區（如 America/New_York）格式化出正式日期
+    const tradeDate = formatMarketDate(validTimestamp, meta.exchangeTimezoneName);
 
     // 歷史參考價提取 (前日、前月約21天前、前年)
     let prev1dPrice = null;
@@ -924,7 +936,7 @@ function renderUI() {
       if (item.profitTWD !== null && item.profitRate !== null) {
         const sign = item.profitTWD >= 0 ? '+' : '';
         const colorClass = item.profitTWD >= 0 ? 'profit-up' : 'profit-down';
-        profitDisplay = `<span class="${colorClass}">${sign}$${Math.round(item.profitTWD).toLocaleString()} (${sign}${item.profitRate.toFixed(2)}%)</span>`;
+        profitDisplay = `<span class="${colorClass}">${sign}$${Math.round(item.profitTWD).toLocaleString()} (${sign}${profitRate.toFixed(2)}%)</span>`;
       }
 
       const ratioDisplay = (totalAssetTWD > 0 && valTWD !== null) ? ` (${((valTWD / totalAssetTWD) * 100).toFixed(1)}%)` : '';
