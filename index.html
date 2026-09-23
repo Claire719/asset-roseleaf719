@@ -96,9 +96,9 @@
     }
     .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
     
-    .item-title-tw { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .item-title-tw { font-size: 13.5px; font-weight: 700; color: #475569; }
     .item-title-other { font-size: 15px; font-weight: 700; color: #1e293b; }
-    .item-cname { font-size: 13px; font-weight: 600; color: var(--primary); margin-left: 5px; }
+    .item-cname { font-size: 15px; font-weight: 700; color: var(--primary); margin-left: 6px; }
 
     .item-market { font-size: 11px; padding: 1px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 4px; }
     .item-data { display: flex; justify-content: space-between; margin-top: 5px; font-size: 13px; }
@@ -227,7 +227,7 @@
 
   <!-- 代號快速檢索框 -->
   <div class="search-box">
-    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/名稱 (例: 00662, 富邦, USD)" oninput="renderUI()">
+    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/中文名 (例: 00662, 富邦, USD)" oninput="renderUI()">
     <button class="btn-edit" style="flex:none; padding:8px 12px;" onclick="clearSearch()">清除</button>
   </div>
 
@@ -257,7 +257,7 @@
   <div id="assetList"></div>
 
   <div class="footer-note">
-    💡 提示：點擊各標的下方「手動微調」即可同時修改股數、價格與指標。
+    💡 提示：本系統一律鎖定「最近已完成交易日收盤價」，盤中不抓取跳動之即時現盤價。
   </div>
 </div>
 
@@ -324,13 +324,11 @@
     <input type="hidden" id="manualAssetId">
     <input type="hidden" id="manualQuoteKey">
 
-    <!-- 整合持有股數/金額 -->
     <div class="form-group">
       <label id="manualQtyLabel">持有數量</label>
       <input type="number" step="any" id="manualQtyVal" placeholder="請輸入數量">
     </div>
 
-    <!-- 股票專屬欄位 (收盤價、Beta、殖利率、日期) -->
     <div id="stockManualFields">
       <div class="form-group">
         <label>收盤價 (原幣)</label>
@@ -378,7 +376,7 @@
 
 <script>
 // 【重要】請將此網址替換為您的 Cloudflare Worker 網址
-const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev/'; 
+const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev'; 
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
 
@@ -389,16 +387,20 @@ const TW_STOCK_NAMES = {
   '00696B': '富邦美債20年',
   '00679B': '元大美債20年',
   '00687B': '國泰20年美債',
+  '00720B': '元大投資級公司債',
+  '00751B': '元大AAA至A公司債',
   '0050': '元大台灣50',
   '0056': '元大高股息',
   '00878': '國泰永續高股息',
   '00919': '群益台灣精選高息',
   '00929': '復華台灣科技優息',
+  '00940': '元大台灣價值高息',
   '00670L': '富邦NASDAQ正2',
   '00675L': '富邦臺灣加權正2',
   '2330': '台積電',
   '2317': '鴻海',
-  '2454': '聯發科'
+  '2454': '聯發科',
+  '2308': '台達電'
 };
 
 let state = {
@@ -505,18 +507,22 @@ function resolveTicker(market, symbol) {
 
 function getDisplayName(market, symbol, remoteName) {
   if (market === 'TW') {
-    const clean = symbol.split('.')[0].toUpperCase();
-    if (TW_STOCK_NAMES[clean]) return TW_STOCK_NAMES[clean];
+    const cleanSym = symbol.replace(/\.(TW|TWO)$/i, '').trim().toUpperCase();
+    if (TW_STOCK_NAMES[cleanSym]) {
+      return TW_STOCK_NAMES[cleanSym];
+    }
   }
   return remoteName || '';
 }
 
+// 【鎖定前一交易日收盤價核心函式】
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const res = await fetch(`${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}`, { signal: controller.signal });
+    const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
+    const res = await fetch(fetchUrl, { signal: controller.signal, cache: 'no-store' });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -527,28 +533,53 @@ async function fetchQuote(tickerKey) {
     const meta = result.meta;
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
+    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : -14400; // 預設美東
 
     if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
+
+    // 判斷當前市場狀態
+    const currentTradingPeriod = meta.currentTradingPeriod;
+    const regStart = currentTradingPeriod?.regular?.start;
+    const regEnd = currentTradingPeriod?.regular?.end;
+    const nowSec = Math.floor(Date.now() / 1000);
+
+    // 是否正在開盤中 (美股/台股盤中)
+    const isLive = regStart && regEnd && (nowSec >= regStart && nowSec < regEnd);
 
     let price = null;
     let validTimestamp = null;
     let validIdx = -1;
-    for (let i = closes.length - 1; i >= 0; i--) {
-      if (closes[i] !== null && closes[i] !== undefined) {
-        price = closes[i];
-        validTimestamp = timestamps[i];
-        validIdx = i;
-        break;
+
+    // 依據規則：若開盤中，絕不抓取跳動中的現盤價，直接鎖定上個交易日已完成的收盤價
+    if (isLive && meta.chartPreviousClose) {
+      price = meta.chartPreviousClose;
+      // 日期鎖定在前一日
+      const prevDaySec = regStart - 3600 * 12;
+      validTimestamp = prevDaySec;
+      // 尋找對應的 K 線索引
+      validIdx = Math.max(0, closes.length - 2);
+    } else {
+      // 非盤中（休市或已收盤）：從歷史日 K 線由後往前找出最後一筆已定盤收盤價
+      for (let i = closes.length - 1; i >= 0; i--) {
+        if (closes[i] !== null && closes[i] !== undefined) {
+          price = closes[i];
+          validTimestamp = timestamps[i];
+          validIdx = i;
+          break;
+        }
+      }
+      if (price === null) {
+        price = meta.chartPreviousClose || meta.previousClose || meta.regularMarketPrice;
+        validTimestamp = meta.regularMarketTime;
       }
     }
 
-    if (price === null) {
-      price = meta.regularMarketPrice;
-      validTimestamp = meta.regularMarketTime;
-    }
+    // 交易所當地交易日計算 (利用 gmtoffset 精確換算，防止時差縮減一天)
+    const localSec = (validTimestamp || Math.floor(Date.now() / 1000)) + gmtOffset;
+    const localDate = new Date(localSec * 1000);
+    const tradeDate = localDate.toISOString().split('T')[0];
 
-    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
-
+    // 歷史基準價格提取 (前日、前月、前年)
     let prev1dPrice = null;
     let prev1mPrice = null;
     let prev1yPrice = null;
@@ -580,7 +611,7 @@ async function fetchQuote(tickerKey) {
       currency: meta.currency || (tickerKey.endsWith('.HK') ? 'HKD' : tickerKey.endsWith('.TW') || tickerKey.endsWith('.TWO') ? 'TWD' : 'USD'),
       date: tradeDate,
       name: meta.shortName || meta.symbol || tickerKey,
-      source: 'Yahoo Finance',
+      source: 'Yahoo Finance (已完成交易日收盤價)',
       updatedAt: new Date().toLocaleTimeString(),
       error: null,
       isManual: false
@@ -614,7 +645,7 @@ async function fetchExchangeRates() {
 async function refreshQuotes(silent = false) {
   if (!silent) {
     document.getElementById('statusBanner').style.display = 'block';
-    document.getElementById('statusBanner').innerText = '正在背景抓取行情、Beta、殖利率與匯率...';
+    document.getElementById('statusBanner').innerText = '正在背景抓取最新收盤行情、Beta、殖利率與匯率...';
   }
 
   await fetchExchangeRates();
@@ -646,7 +677,6 @@ async function refreshQuotes(silent = false) {
   renderUI();
 }
 
-// 開啟手動微調彈窗 (同時包含數量、收盤價、Beta、殖利率)
 function promptManualEdit(assetId) {
   const item = state.assets.find(a => a.id === assetId);
   if (!item) return;
@@ -669,7 +699,6 @@ function promptManualEdit(assetId) {
     document.getElementById('manualYieldVal').value = (quote.divYield !== null && quote.divYield !== undefined) ? quote.divYield : '';
     document.getElementById('manualPriceDate').value = quote.date || new Date().toISOString().split('T')[0];
   } else {
-    // 現金或負債
     document.getElementById('manualModalTitle').innerText = `微調：${item.type === 'CASH' ? '現金' : '負債'} (${item.currency})`;
     document.getElementById('manualQuoteKey').value = '';
     document.getElementById('manualQtyLabel').innerText = '金額';
@@ -680,7 +709,6 @@ function promptManualEdit(assetId) {
   openModal('manualPriceModal');
 }
 
-// 儲存微調設定 (同步更新股數/金額與報價指標)
 function saveManualPrice() {
   const assetId = document.getElementById('manualAssetId').value;
   const newQty = parseFloat(document.getElementById('manualQtyVal').value);
@@ -694,7 +722,7 @@ function saveManualPrice() {
   if (!item) return;
 
   if (item.type === 'STOCK') {
-    item.qty = newQty; // 更新股數
+    item.qty = newQty;
 
     const ticker = document.getElementById('manualQuoteKey').value;
     const price = parseFloat(document.getElementById('manualPriceVal').value);
@@ -724,7 +752,6 @@ function saveManualPrice() {
       isManual: true
     };
   } else {
-    // 現金或負債只更新金額
     item.amount = newQty;
   }
 
@@ -1003,23 +1030,18 @@ function renderUI() {
     document.getElementById('totalAssetDisplay').innerText = `$${Math.round(totalAssetTWD).toLocaleString()}`;
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
     
-    // 類現金金額
     const cashRatio = totalAssetTWD > 0 ? ((cashLikeTWD / totalAssetTWD) * 100).toFixed(1) : 0;
     document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()} (${cashRatio}%)`;
 
-    // 0 < Beta < 1 金額
     const beta0to1Ratio = totalAssetTWD > 0 ? ((beta0to1TWD / totalAssetTWD) * 100).toFixed(1) : 0;
     document.getElementById('beta0to1Display').innerText = `$${Math.round(beta0to1TWD).toLocaleString()} (${beta0to1Ratio}%)`;
 
-    // 1 <= Beta < 2 金額
     const beta1to2Ratio = totalAssetTWD > 0 ? ((beta1to2TWD / totalAssetTWD) * 100).toFixed(1) : 0;
     document.getElementById('beta1to2Display').innerText = `$${Math.round(beta1to2TWD).toLocaleString()} (${beta1to2Ratio}%)`;
 
-    // Beta >= 2 金額 (槓桿)
     const betaGte2Ratio = totalAssetTWD > 0 ? ((betaGte2TWD / totalAssetTWD) * 100).toFixed(1) : 0;
     document.getElementById('betaGte2Display').innerText = `$${Math.round(betaGte2TWD).toLocaleString()} (${betaGte2Ratio}%)`;
 
-    // 預估配息金額與總平均殖利率
     document.getElementById('estimatedDividendDisplay').innerText = `$${Math.round(totalEstimatedDividendTWD).toLocaleString()}`;
     if (totalAssetTWD > 0) {
       const avgYield = (totalEstimatedDividendTWD / totalAssetTWD) * 100;
@@ -1028,7 +1050,6 @@ function renderUI() {
       document.getElementById('portfolioYieldDisplay').innerText = `0.00%`;
     }
 
-    // 總資產加權 Beta
     if (totalAssetTWD > 0) {
       if (hasMissingBeta) {
         document.getElementById('portfolioBetaDisplay').innerHTML = `<span class="badge-warn">Beta不完整</span>`;
@@ -1037,7 +1058,6 @@ function renderUI() {
         document.getElementById('portfolioBetaDisplay').innerText = portfolioBeta.toFixed(2);
       }
 
-      // 總資產報酬表現
       const totalProfit = totalAssetTWD - portfolioRefTWD;
       const totalProfitRate = portfolioRefTWD > 0 ? (totalProfit / portfolioRefTWD) * 100 : 0;
       const sign = totalProfit >= 0 ? '+' : '';
