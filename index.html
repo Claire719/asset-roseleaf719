@@ -62,30 +62,6 @@
     .btn-danger { background: var(--danger); color: #fff; padding: 6px 10px; font-size: 12px; border-radius: 6px; }
     .btn-edit { background: #f1f5f9; color: var(--text); padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border); }
 
-    /* 搜尋與控制列 */
-    .search-box {
-      margin-bottom: 10px;
-      display: flex;
-      gap: 6px;
-    }
-    .search-box input {
-      flex: 1;
-      padding: 10px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      font-size: 15px;
-      text-transform: uppercase;
-    }
-    .search-box button {
-      flex: none;
-      padding: 10px 14px;
-      background: #f1f5f9;
-      color: var(--text);
-      font-size: 13px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-    }
-
     .control-row {
       display: flex;
       justify-content: space-between;
@@ -218,12 +194,6 @@
     <button class="btn-outline" onclick="openModal('backupModal')">備份/還原</button>
   </div>
 
-  <!-- 代號檢索搜尋框 -->
-  <div class="search-box">
-    <input type="text" id="searchKeyword" placeholder="🔍 輸入代號或幣別檢索 (如: QQQ, 00662, USD)" oninput="renderUI()">
-    <button onclick="clearSearch()">清除</button>
-  </div>
-
   <!-- 控制列：排序與報酬基準 -->
   <div class="control-row">
     <div>
@@ -250,7 +220,7 @@
   <div id="assetList"></div>
 
   <div class="footer-note">
-    💡 提示：預估配息係依最新殖利率與持股市值推算；若標的無配息政策將明確顯示「不配息」。資料存放於本機瀏覽器，請定期備份。
+    💡 提示：債券 ETF (尾綴帶 B) 自動對接櫃買中心。資料存放於本機瀏覽器，請定期備份。
   </div>
 </div>
 
@@ -278,7 +248,7 @@
         </select>
       </div>
       <div class="form-group">
-        <label>代號 (例: 00662, QQQ, 2834)</label>
+        <label>代號 (例: 00662, 00696B, QQQ, 2834)</label>
         <input type="text" id="stockSymbol" placeholder="請輸入代號" style="text-transform: uppercase;">
       </div>
       <div class="form-group">
@@ -421,11 +391,6 @@ function toggleFormType() {
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-function clearSearch() {
-  document.getElementById('searchKeyword').value = '';
-  renderUI();
-}
-
 function saveItem() {
   const type = document.getElementById('itemType').value;
   const id = Date.now().toString();
@@ -491,6 +456,7 @@ function deleteItem(id) {
   }
 }
 
+// 【修復核心】：針對台股所有債券型 ETF (結尾為 B) 以及 6 開頭櫃買標的，自動判定為 .TWO
 function resolveTicker(market, symbol) {
   if (market === 'US') return symbol;
   if (market === 'HK') {
@@ -499,23 +465,21 @@ function resolveTicker(market, symbol) {
   }
   if (market === 'TW') {
     if (symbol.endsWith('.TWO') || symbol.endsWith('.TW')) return symbol;
-    if (symbol === '00865B' || symbol.startsWith('6')) return `${symbol}.TWO`;
+    // 凡是末尾帶 B（債券 ETF）或以 6 開頭的櫃買代號，自動帶 .TWO
+    if (symbol.endsWith('B') || symbol.startsWith('6')) {
+      return `${symbol}.TWO`;
+    }
     return `${symbol}.TW`;
   }
   return symbol;
 }
 
-// 包含時區偏移量 (gmtoffset) 解析與防快取
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
   try {
-    const fetchUrl = `${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}&_t=${Date.now()}`;
-    const res = await fetch(fetchUrl, { 
-      signal: controller.signal,
-      cache: 'no-store'
-    });
+    const res = await fetch(`${PROXY_BASE_URL}?ticker=${encodeURIComponent(tickerKey)}`, { signal: controller.signal });
     clearTimeout(timeoutId);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
@@ -527,38 +491,26 @@ async function fetchQuote(tickerKey) {
     const timestamps = result.timestamp || [];
     const closes = result.indicators?.quote?.[0]?.close || [];
 
+    if (!closes || closes.length === 0) throw new Error('無收盤價格資料');
+
     let price = null;
     let validTimestamp = null;
     let validIdx = -1;
-
-    // 優先採用 meta 最新正式價格與時間戳
-    if (meta.regularMarketPrice !== undefined && meta.regularMarketPrice !== null) {
-      price = meta.regularMarketPrice;
-      validTimestamp = meta.regularMarketTime || timestamps[timestamps.length - 1];
-    }
-
-    // 由後往前尋找最新一筆有效收盤價
     for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] !== null && closes[i] !== undefined) {
-        if (price === null) {
-          price = closes[i];
-          validTimestamp = timestamps[i];
-        }
+        price = closes[i];
+        validTimestamp = timestamps[i];
         validIdx = i;
         break;
       }
     }
 
-    if (price === null) throw new Error('無收盤價格資料');
+    if (price === null) {
+      price = meta.regularMarketPrice;
+      validTimestamp = meta.regularMarketTime;
+    }
 
-    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)
-    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : 0;
-    const localMs = (validTimestamp + gmtOffset) * 1000;
-    const localDate = new Date(localMs);
-    const y = localDate.getUTCFullYear();
-    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
-    const d = String(localDate.getUTCDate()).padStart(2, '0');
-    const tradeDate = `${y}-${m}-${d}`;
+    const tradeDate = new Date(validTimestamp * 1000).toISOString().split('T')[0];
 
     // 歷史基準價格提取 (前日、前月、前年)
     let prev1dPrice = null;
@@ -607,10 +559,7 @@ async function fetchExchangeRates() {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 6000);
   try {
-    const res = await fetch(`https://open.er-api.com/v6/latest/USD?_t=${Date.now()}`, { 
-      signal: controller.signal,
-      cache: 'no-store'
-    });
+    const res = await fetch('https://open.er-api.com/v6/latest/USD', { signal: controller.signal });
     clearTimeout(timeout);
     if (!res.ok) throw new Error('匯率服務連線失敗');
     const data = await res.json();
@@ -721,13 +670,12 @@ function renderUI() {
   let cashLikeTWD = 0; 
   let weightedBetaSum = 0;
   let portfolioRefTWD = 0;
-  let totalEstimatedDividendTWD = 0;
+  let totalEstimatedDividendTWD = 0; 
 
   let hasIncomplete = false;
   let hasMissingBeta = false;
   let missingReasons = [];
 
-  // 匯率顯示
   const fxInfoEl = document.getElementById('fxRateInfo');
   if (state.fxRates.USD.rate && state.fxRates.HKD.rate) {
     fxInfoEl.innerText = `匯率 (${state.fxRates.USD.date} / ExchangeRate-API)：1 美元 = ${state.fxRates.USD.rate.toFixed(2)} 台幣 | 1 港幣 = ${state.fxRates.HKD.rate.toFixed(2)} 台幣`;
@@ -739,9 +687,7 @@ function renderUI() {
 
   const sortOpt = document.getElementById('sortOption').value;
   const benchmarkOpt = document.getElementById('returnBenchmark').value;
-  const keyword = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
 
-  // 計算每筆項目資料並支援排序
   const enrichedAssets = state.assets.map(item => {
     let valTWD = null;
     let quote = null;
@@ -778,7 +724,6 @@ function renderUI() {
     return { ...item, valTWD, quote, profitTWD, profitRate, refPrice, estDivTWD };
   });
 
-  // 排序
   enrichedAssets.sort((a, b) => {
     if (sortOpt === 'AMOUNT_DESC') return (b.valTWD || 0) - (a.valTWD || 0);
     if (sortOpt === 'QTY_DESC') return (b.qty || b.amount || 0) - (a.qty || a.amount || 0);
@@ -793,7 +738,6 @@ function renderUI() {
     return 0;
   });
 
-  // 全局統計（總額、類現金、配息不因搜尋而縮水，保證總額完整真實）
   enrichedAssets.forEach(item => {
     if (item.valTWD !== null) {
       if (item.type === 'STOCK') {
@@ -828,22 +772,7 @@ function renderUI() {
     }
   });
 
-  // 根據代號或幣別進行搜尋過濾
-  const displayedAssets = enrichedAssets.filter(item => {
-    if (!keyword) return true;
-    if (item.type === 'STOCK') {
-      return (item.symbol && item.symbol.toUpperCase().includes(keyword)) || 
-             (item.market && item.market.toUpperCase().includes(keyword)) ||
-             (item.quote?.name && item.quote.name.toUpperCase().includes(keyword));
-    } else {
-      return (item.currency && item.currency.toUpperCase().includes(keyword)) ||
-             (item.type === 'CASH' && '現金'.includes(keyword)) ||
-             (item.type === 'DEBT' && '負債'.includes(keyword));
-    }
-  });
-
-  // 渲染卡片
-  displayedAssets.forEach(item => {
+  enrichedAssets.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -856,7 +785,6 @@ function renderUI() {
       const currency = quote?.currency || (item.market === 'TW' ? 'TWD' : item.market === 'HK' ? 'HKD' : 'USD');
       const valTWD = item.valTWD;
 
-      // 殖利率防呆
       let yieldDisplay = '<span class="badge-warn">待補</span>';
       if (divYield !== null && divYield !== undefined) {
         if (Number(divYield) === 0) {
@@ -866,7 +794,6 @@ function renderUI() {
         }
       }
 
-      // 報酬率顯示
       let profitDisplay = '<span style="color:var(--text-sub);">無基準資料</span>';
       if (item.profitTWD !== null && item.profitRate !== null) {
         const sign = item.profitTWD >= 0 ? '+' : '';
@@ -944,10 +871,6 @@ function renderUI() {
     listEl.appendChild(card);
   });
 
-  if (displayedAssets.length === 0 && state.assets.length > 0) {
-    listEl.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-sub); font-size:14px;">找不到與「${keyword}」相符的標的代號</div>`;
-  }
-
   const banner = document.getElementById('statusBanner');
   if (hasIncomplete) {
     banner.style.display = 'block';
@@ -969,7 +892,6 @@ function renderUI() {
     document.getElementById('debtAssetDisplay').innerText = `$${Math.round(totalDebtTWD).toLocaleString()}`;
     document.getElementById('cashLikeTotalDisplay').innerText = `$${Math.round(cashLikeTWD).toLocaleString()}`;
 
-    // 顯示預估配息金額與總平均殖利率
     document.getElementById('estimatedDividendDisplay').innerText = `$${Math.round(totalEstimatedDividendTWD).toLocaleString()}`;
     if (totalAssetTWD > 0) {
       const avgYield = (totalEstimatedDividendTWD / totalAssetTWD) * 100;
@@ -989,7 +911,6 @@ function renderUI() {
       const cashRatio = (cashLikeTWD / totalAssetTWD) * 100;
       document.getElementById('cashLikeRatioDisplay').innerText = `${cashRatio.toFixed(1)}%`;
 
-      // 總資產報酬表現
       const totalProfit = totalAssetTWD - portfolioRefTWD;
       const totalProfitRate = portfolioRefTWD > 0 ? (totalProfit / portfolioRefTWD) * 100 : 0;
       const sign = totalProfit >= 0 ? '+' : '';
