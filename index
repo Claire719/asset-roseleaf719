@@ -375,7 +375,7 @@
 
 <script>
 // 【重要】請將此網址替換為您的 Cloudflare Worker 網址
-const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev'; 
+const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev/'; 
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
 
