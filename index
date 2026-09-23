@@ -470,7 +470,7 @@ function resolveTicker(market, symbol) {
   return symbol;
 }
 
-// 修正：加入時區校正與防快取機制
+// 核心修正：加入時區偏移量精準解析當地交易日
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -502,7 +502,7 @@ async function fetchQuote(tickerKey) {
       validTimestamp = meta.regularMarketTime || timestamps[timestamps.length - 1];
     }
 
-    // 由後往前尋找最新一筆日 K 收盤價以確認 index
+    // 由後往前尋找最新一筆有效收盤價
     for (let i = closes.length - 1; i >= 0; i--) {
       if (closes[i] !== null && closes[i] !== undefined) {
         if (price === null) {
@@ -516,11 +516,13 @@ async function fetchQuote(tickerKey) {
 
     if (price === null) throw new Error('無收盤價格資料');
 
-    // 時區轉換：依美東/當地日期格式化，避免 UTC 零時區差一天
-    const dateObj = new Date(validTimestamp * 1000);
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
+    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)，精準得到當地交易日（例如美東 9/22）
+    const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : 0;
+    const localMs = (validTimestamp + gmtOffset) * 1000;
+    const localDate = new Date(localMs);
+    const y = localDate.getUTCFullYear();
+    const m = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(localDate.getUTCDate()).padStart(2, '0');
     const tradeDate = `${y}-${m}-${d}`;
 
     // 歷史基準價格提取 (前日、前月、前年)
