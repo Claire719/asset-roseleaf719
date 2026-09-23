@@ -17,38 +17,38 @@
       --success: #10b981;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 16px; padding-bottom: 80px; }
+    body { background: var(--bg); color: var(--text); padding: 14px; padding-bottom: 80px; }
     .container { max-width: 480px; margin: 0 auto; }
     
     .summary-card {
       background: var(--card-bg);
       border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
+      padding: 18px;
+      margin-bottom: 14px;
       border: 1px solid var(--border);
       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
     }
-    .summary-card .label { font-size: 14px; color: var(--text-sub); }
-    .summary-card .val-large { font-size: 30px; font-weight: 800; color: var(--primary); margin: 6px 0 12px; }
-    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border-top: 1px solid var(--border); padding-top: 12px; }
-    .summary-grid .sub-val { font-size: 16px; font-weight: 700; margin-top: 4px; }
+    .summary-card .label { font-size: 13px; color: var(--text-sub); }
+    .summary-card .val-large { font-size: 28px; font-weight: 800; color: var(--primary); margin: 4px 0 10px; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .summary-grid .sub-val { font-size: 15px; font-weight: 700; margin-top: 3px; }
     
     .status-banner {
       background: #fffbeb;
       border: 1px solid var(--warning);
       padding: 10px 14px;
       border-radius: 8px;
-      font-size: 13px;
+      font-size: 12px;
       color: #b45309;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
       display: none;
     }
 
-    .btn-group { display: flex; gap: 8px; margin-bottom: 16px; }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 14px; }
     button {
       flex: 1;
-      padding: 14px 16px;
-      font-size: 15px;
+      padding: 12px 14px;
+      font-size: 14px;
       font-weight: 600;
       border-radius: 10px;
       border: none;
@@ -59,37 +59,38 @@
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
-    .btn-danger { background: var(--danger); color: #fff; padding: 6px 10px; font-size: 12px; border-radius: 6px; }
-    .btn-edit { background: #f1f5f9; color: var(--text); padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border); }
+    .btn-danger { background: var(--danger); color: #fff; padding: 4px 8px; font-size: 11px; border-radius: 5px; }
+    .btn-edit { background: #f1f5f9; color: var(--text); padding: 4px 8px; font-size: 11px; border-radius: 5px; border: 1px solid var(--border); }
 
     .control-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       gap: 8px;
     }
     .control-row select {
-      padding: 8px 12px;
+      padding: 6px 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
       background: #fff;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
     }
 
+    /* 縮小後的個股卡片樣式 */
     .card {
       background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
       border: 1px solid var(--border);
     }
-    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-    .item-title { font-size: 17px; font-weight: 700; }
-    .item-market { font-size: 12px; padding: 2px 6px; background: #e2e8f0; border-radius: 4px; margin-left: 6px; }
-    .item-data { display: flex; justify-content: space-between; margin-top: 6px; font-size: 14px; }
-    .item-meta { font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4; border-top: 1px dashed var(--border); padding-top: 6px; }
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .item-title { font-size: 15px; font-weight: 700; }
+    .item-market { font-size: 11px; padding: 2px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 4px; }
+    .item-data { display: flex; justify-content: space-between; margin-top: 4px; font-size: 13px; line-height: 1.35; }
+    .item-meta { font-size: 10.5px; color: var(--text-sub); margin-top: 6px; line-height: 1.35; border-top: 1px dashed var(--border); padding-top: 5px; }
 
     .badge-warn { color: var(--warning); font-weight: 600; }
     .badge-ok { color: var(--success); font-weight: 700; }
@@ -107,22 +108,22 @@
       width: 100%;
       max-width: 480px;
       border-radius: 16px 16px 0 0;
-      padding: 24px;
+      padding: 20px;
       max-height: 90vh;
       overflow-y: auto;
     }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 5px; }
     .form-group input, .form-group select {
-      width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px;
+      width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 15px;
     }
 
     .footer-note {
-      font-size: 12px;
+      font-size: 11px;
       color: var(--text-sub);
       text-align: center;
-      margin-top: 24px;
-      line-height: 1.5;
+      margin-top: 20px;
+      line-height: 1.4;
     }
   </style>
 </head>
@@ -147,7 +148,7 @@
     </div>
     
     <!-- 預估明年配息與總平均殖利率 -->
-    <div class="summary-grid" style="margin-top: 10px;">
+    <div class="summary-grid" style="margin-top: 8px;">
       <div>
         <div class="label">預估明年現金配息</div>
         <div class="sub-val badge-ok" id="estimatedDividendDisplay">$0</div>
@@ -159,7 +160,7 @@
     </div>
 
     <!-- 類現金金額與比率 -->
-    <div class="summary-grid" style="margin-top: 10px;">
+    <div class="summary-grid" style="margin-top: 8px;">
       <div>
         <div class="label">類現金金額 (Beta=0)</div>
         <div class="sub-val" id="cashLikeTotalDisplay">$0</div>
@@ -171,7 +172,7 @@
     </div>
 
     <!-- 組合 Beta 與整體報酬 -->
-    <div class="summary-grid" style="margin-top: 10px;">
+    <div class="summary-grid" style="margin-top: 8px;">
       <div>
         <div class="label">資產組合加權 Beta</div>
         <div class="sub-val" id="portfolioBetaDisplay">0.00</div>
@@ -182,7 +183,7 @@
       </div>
     </div>
 
-    <div style="font-size: 11px; color: var(--text-sub); margin-top: 12px;" id="fxRateInfo">
+    <div style="font-size: 10.5px; color: var(--text-sub); margin-top: 10px;" id="fxRateInfo">
       匯率資訊：載入中...
     </div>
   </div>
@@ -197,7 +198,7 @@
   <!-- 控制列：排序與報酬基準 -->
   <div class="control-row">
     <div>
-      <span style="font-size: 13px; color: var(--text-sub);">排序：</span>
+      <span style="font-size: 12px; color: var(--text-sub);">排序：</span>
       <select id="sortOption" onchange="renderUI()">
         <option value="DEFAULT">預設順序</option>
         <option value="AMOUNT_DESC">金額 (高至低)</option>
@@ -207,7 +208,7 @@
       </select>
     </div>
     <div>
-      <span style="font-size: 13px; color: var(--text-sub);">報酬基準：</span>
+      <span style="font-size: 12px; color: var(--text-sub);">報酬基準：</span>
       <select id="returnBenchmark" onchange="renderUI()">
         <option value="1D">前一日</option>
         <option value="1M">前一個月</option>
@@ -227,7 +228,7 @@
 <!-- 新增資產 Modal -->
 <div id="addAssetModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">新增項目</h3>
+    <h3 style="margin-bottom: 14px; font-size: 16px;">新增項目</h3>
     <div class="form-group">
       <label>類別</label>
       <select id="itemType" onchange="toggleFormType()">
@@ -273,7 +274,7 @@
       </div>
     </div>
 
-    <div class="btn-group" style="margin-top: 20px;">
+    <div class="btn-group" style="margin-top: 16px;">
       <button class="btn-outline" onclick="closeModal('addAssetModal')">取消</button>
       <button class="btn-primary" onclick="saveItem()">儲存</button>
     </div>
@@ -283,7 +284,7 @@
 <!-- 修改數量 Modal -->
 <div id="editQtyModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">修改持有數量</h3>
+    <h3 style="margin-bottom: 14px; font-size: 16px;">修改持有數量</h3>
     <input type="hidden" id="editItemId">
     <div class="form-group">
       <label id="editItemLabel">持有數量</label>
@@ -299,7 +300,7 @@
 <!-- 手動補登價格與資訊 Modal -->
 <div id="manualPriceModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">手動設定價格與指標</h3>
+    <h3 style="margin-bottom: 14px; font-size: 16px;">手動設定價格與指標</h3>
     <input type="hidden" id="manualQuoteKey">
     <div class="form-group">
       <label>收盤價 (原幣)</label>
@@ -327,15 +328,15 @@
 <!-- 備份還原 Modal -->
 <div id="backupModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">備份與還原</h3>
+    <h3 style="margin-bottom: 14px; font-size: 16px;">備份與還原</h3>
     <div class="form-group">
       <button class="btn-primary" style="width: 100%; margin-bottom: 8px;" onclick="exportJSON()">下載 JSON 備份檔</button>
     </div>
-    <div class="form-group" style="margin-top: 16px;">
+    <div class="form-group" style="margin-top: 14px;">
       <label>匯入備份 (覆蓋還原)</label>
       <input type="file" id="importFileInput" accept=".json" onchange="previewImport(event)">
     </div>
-    <div id="importPreview" style="font-size: 13px; color: var(--text-sub); margin-bottom: 16px;"></div>
+    <div id="importPreview" style="font-size: 12px; color: var(--text-sub); margin-bottom: 14px;"></div>
     <div class="btn-group">
       <button class="btn-outline" onclick="closeModal('backupModal')">關閉</button>
       <button id="btnConfirmRestore" class="btn-danger" style="display:none;" onclick="confirmRestore()">確認覆蓋還原</button>
@@ -456,7 +457,7 @@ function deleteItem(id) {
   }
 }
 
-// 【修復核心】：針對台股所有債券型 ETF (結尾為 B) 以及 6 開頭櫃買標的，自動判定為 .TWO
+// 針對台股債券型 ETF (結尾為 B) 以及 6 開頭櫃買標的，自動判定為 .TWO
 function resolveTicker(market, symbol) {
   if (market === 'US') return symbol;
   if (market === 'HK') {
@@ -465,7 +466,6 @@ function resolveTicker(market, symbol) {
   }
   if (market === 'TW') {
     if (symbol.endsWith('.TWO') || symbol.endsWith('.TW')) return symbol;
-    // 凡是末尾帶 B（債券 ETF）或以 6 開頭的櫃買代號，自動帶 .TWO
     if (symbol.endsWith('B') || symbol.startsWith('6')) {
       return `${symbol}.TWO`;
     }
@@ -676,6 +676,7 @@ function renderUI() {
   let hasMissingBeta = false;
   let missingReasons = [];
 
+  // 匯率顯示
   const fxInfoEl = document.getElementById('fxRateInfo');
   if (state.fxRates.USD.rate && state.fxRates.HKD.rate) {
     fxInfoEl.innerText = `匯率 (${state.fxRates.USD.date} / ExchangeRate-API)：1 美元 = ${state.fxRates.USD.rate.toFixed(2)} 台幣 | 1 港幣 = ${state.fxRates.HKD.rate.toFixed(2)} 台幣`;
@@ -809,37 +810,33 @@ function renderUI() {
           <div>
             <span class="item-title">${item.symbol}</span>
             <span class="item-market">${item.market}</span>
-            <span style="font-size:12px; color:var(--text-sub);">${quote?.name ? `(${quote.name})` : ''}</span>
+            <span style="font-size:11px; color:var(--text-sub);">${quote?.name ? `(${quote.name})` : ''}</span>
           </div>
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:5px;">
             <button class="btn-edit" onclick="promptEditQty('${item.id}')">修正股數</button>
             <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
           </div>
         </div>
         <div class="item-data">
-          <span>持有股數：${item.qty.toLocaleString()} 股</span>
-          <span>收盤價：${price !== null && price !== undefined ? `${price}${currency}` : '<span class="badge-warn">待補</span>'}</span>
+          <span>持有：${item.qty.toLocaleString()} 股</span>
+          <span>收盤：${price !== null && price !== undefined ? `${price}${currency}` : '<span class="badge-warn">待補</span>'}</span>
         </div>
         <div class="item-data">
-          <span>Beta (5年平均)：${beta !== null && beta !== undefined ? `<strong>${beta}</strong>` : '<span class="badge-warn">待補</span>'}</span>
-          <span>現金殖利率：${yieldDisplay}</span>
+          <span>Beta (5年)：${beta !== null && beta !== undefined ? `<strong>${beta}</strong>` : '<span class="badge-warn">待補</span>'}</span>
+          <span>殖利率：${yieldDisplay}</span>
         </div>
         <div class="item-data">
-          <span>預估明年配息：</span>
-          <span><strong>${estDivDisplay}</strong></span>
+          <span>預估配息：<strong>${estDivDisplay}</strong></span>
+          <span>較${benchmarkOpt === '1D' ? '前日' : benchmarkOpt === '1M' ? '前月' : '前年'}：${profitDisplay}</span>
         </div>
-        <div class="item-data">
-          <span>較${benchmarkOpt === '1D' ? '前一日' : benchmarkOpt === '1M' ? '前一個月' : '前一年'}：</span>
-          <span>${profitDisplay}</span>
-        </div>
-        <div class="item-data" style="font-weight:700; font-size:15px; margin-top:8px;">
+        <div class="item-data" style="font-weight:700; font-size:14px; margin-top:6px;">
           <span>市值 (TWD)：</span>
-          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:12px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">無法估算</span>'}</span>
+          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:11px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">無法估算</span>'}</span>
         </div>
         <div class="item-meta">
           ${price !== null && price !== undefined ? 
-            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動微調</a>` : 
-            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動補登</a>`
+            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">微調</a>` : 
+            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">補登</a>`
           }
         </div>
       `;
@@ -853,7 +850,7 @@ function renderUI() {
           <div>
             <span class="item-title">${isDebt ? '負債' : '現金'} (${item.currency})</span>
           </div>
-          <div style="display:flex; gap:6px;">
+          <div style="display:flex; gap:5px;">
             <button class="btn-edit" onclick="promptEditQty('${item.id}')">修改金額</button>
             <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
           </div>
@@ -862,9 +859,9 @@ function renderUI() {
           <span>原幣金額：</span>
           <span>${item.amount.toLocaleString()} ${item.currency}</span>
         </div>
-        <div class="item-data" style="font-weight:700; font-size:15px;">
+        <div class="item-data" style="font-weight:700; font-size:14px; margin-top:4px;">
           <span>折合 TWD：</span>
-          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:12px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">缺少匯率</span>'}</span>
+          <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:11px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">缺少匯率</span>'}</span>
         </div>
       `;
     }
