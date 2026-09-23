@@ -95,8 +95,12 @@
       border: 1px solid var(--border);
     }
     .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-    .item-title { font-size: 16px; font-weight: 700; }
-    .item-market { font-size: 11px; padding: 2px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 5px; }
+    
+    .item-title-tw { font-size: 14px; font-weight: 700; color: #1e293b; }
+    .item-title-other { font-size: 15px; font-weight: 700; color: #1e293b; }
+    .item-cname { font-size: 13px; font-weight: 600; color: var(--primary); margin-left: 5px; }
+
+    .item-market { font-size: 11px; padding: 1px 5px; background: #e2e8f0; border-radius: 4px; margin-left: 4px; }
     .item-data { display: flex; justify-content: space-between; margin-top: 5px; font-size: 13px; }
     .item-meta { font-size: 11px; color: var(--text-sub); margin-top: 8px; line-height: 1.4; border-top: 1px dashed var(--border); padding-top: 5px; }
 
@@ -223,7 +227,7 @@
 
   <!-- 代號快速檢索框 -->
   <div class="search-box">
-    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號 (例: QQQ, 00662, USD)" oninput="renderUI()">
+    <input type="text" id="searchKeyword" class="search-input" placeholder="🔍 快速檢索代號/名稱 (例: 00662, 富邦, USD)" oninput="renderUI()">
     <button class="btn-edit" style="flex:none; padding:8px 12px;" onclick="clearSearch()">清除</button>
   </div>
 
@@ -253,7 +257,7 @@
   <div id="assetList"></div>
 
   <div class="footer-note">
-    💡 提示：勾選「排除 QQQI」可在頂部看板查看排除特定標的後的資產總額與波動結構。
+    💡 提示：點擊各標的下方「手動微調」即可同時修改股數、價格與指標。
   </div>
 </div>
 
@@ -313,44 +317,40 @@
   </div>
 </div>
 
-<!-- 修改數量 Modal -->
-<div id="editQtyModal" class="modal">
-  <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">修改持有數量</h3>
-    <input type="hidden" id="editItemId">
-    <div class="form-group">
-      <label id="editItemLabel">持有數量</label>
-      <input type="number" step="any" id="editItemQty">
-    </div>
-    <div class="btn-group">
-      <button class="btn-outline" onclick="closeModal('editQtyModal')">取消</button>
-      <button class="btn-primary" onclick="submitEditQty()">儲存變更</button>
-    </div>
-  </div>
-</div>
-
-<!-- 手動補登價格與資訊 Modal -->
+<!-- 手動微調 Modal (整合：股數/金額 + 價格 + 指標) -->
 <div id="manualPriceModal" class="modal">
   <div class="modal-content">
-    <h3 style="margin-bottom: 16px;">手動設定價格與指標</h3>
+    <h3 style="margin-bottom: 16px;" id="manualModalTitle">手動微調項目</h3>
+    <input type="hidden" id="manualAssetId">
     <input type="hidden" id="manualQuoteKey">
+
+    <!-- 整合持有股數/金額 -->
     <div class="form-group">
-      <label>收盤價 (原幣)</label>
-      <input type="number" step="any" id="manualPriceVal" placeholder="0.00">
+      <label id="manualQtyLabel">持有數量</label>
+      <input type="number" step="any" id="manualQtyVal" placeholder="請輸入數量">
     </div>
-    <div class="form-group">
-      <label>Beta 值 (類現金填 0，大盤填 1.0)</label>
-      <input type="number" step="any" id="manualBetaVal" placeholder="例如: 1.15">
+
+    <!-- 股票專屬欄位 (收盤價、Beta、殖利率、日期) -->
+    <div id="stockManualFields">
+      <div class="form-group">
+        <label>收盤價 (原幣)</label>
+        <input type="number" step="any" id="manualPriceVal" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label>Beta 值 (類現金填 0，大盤填 1.0)</label>
+        <input type="number" step="any" id="manualBetaVal" placeholder="例如: 1.15">
+      </div>
+      <div class="form-group">
+        <label>現金殖利率 (%) [不配息請填 0]</label>
+        <input type="number" step="any" id="manualYieldVal" placeholder="例如: 4.5">
+      </div>
+      <div class="form-group">
+        <label>價格日期</label>
+        <input type="date" id="manualPriceDate">
+      </div>
     </div>
-    <div class="form-group">
-      <label>現金殖利率 (%) [不配息請填 0]</label>
-      <input type="number" step="any" id="manualYieldVal" placeholder="例如: 4.5">
-    </div>
-    <div class="form-group">
-      <label>價格日期</label>
-      <input type="date" id="manualPriceDate">
-    </div>
-    <div class="btn-group">
+
+    <div class="btn-group" style="margin-top: 20px;">
       <button class="btn-outline" onclick="closeModal('manualPriceModal')">取消</button>
       <button class="btn-primary" onclick="saveManualPrice()">儲存套用</button>
     </div>
@@ -381,6 +381,25 @@
 const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev/'; 
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
+
+const TW_STOCK_NAMES = {
+  '00662': '富邦NASDAQ',
+  '00865B': '國泰US短期公債',
+  '00631L': '元大台灣50正2',
+  '00696B': '富邦美債20年',
+  '00679B': '元大美債20年',
+  '00687B': '國泰20年美債',
+  '0050': '元大台灣50',
+  '0056': '元大高股息',
+  '00878': '國泰永續高股息',
+  '00919': '群益台灣精選高息',
+  '00929': '復華台灣科技優息',
+  '00670L': '富邦NASDAQ正2',
+  '00675L': '富邦臺灣加權正2',
+  '2330': '台積電',
+  '2317': '鴻海',
+  '2454': '聯發科'
+};
 
 let state = {
   assets: [],       
@@ -460,32 +479,6 @@ function saveItem() {
   refreshQuotes(true);
 }
 
-function promptEditQty(id) {
-  const item = state.assets.find(a => a.id === id);
-  if (!item) return;
-  document.getElementById('editItemId').value = id;
-  document.getElementById('editItemLabel').innerText = item.type === 'STOCK' ? `${item.symbol} 持有股數` : `${item.currency} 金額`;
-  document.getElementById('editItemQty').value = item.type === 'STOCK' ? item.qty : item.amount;
-  openModal('editQtyModal');
-}
-
-function submitEditQty() {
-  const id = document.getElementById('editItemId').value;
-  const val = parseFloat(document.getElementById('editItemQty').value);
-  if (isNaN(val) || val <= 0) {
-    alert('請填寫大於 0 的數值');
-    return;
-  }
-  const item = state.assets.find(a => a.id === id);
-  if (item) {
-    if (item.type === 'STOCK') item.qty = val;
-    else item.amount = val;
-    saveToLocal();
-    closeModal('editQtyModal');
-    renderUI();
-  }
-}
-
 function deleteItem(id) {
   if (confirm('確定刪除此項目？')) {
     state.assets = state.assets.filter(a => a.id !== id);
@@ -508,6 +501,14 @@ function resolveTicker(market, symbol) {
     return `${symbol}.TW`;
   }
   return symbol;
+}
+
+function getDisplayName(market, symbol, remoteName) {
+  if (market === 'TW') {
+    const clean = symbol.split('.')[0].toUpperCase();
+    if (TW_STOCK_NAMES[clean]) return TW_STOCK_NAMES[clean];
+  }
+  return remoteName || '';
 }
 
 async function fetchQuote(tickerKey) {
@@ -645,44 +646,87 @@ async function refreshQuotes(silent = false) {
   renderUI();
 }
 
-function promptManualPrice(ticker) {
-  document.getElementById('manualQuoteKey').value = ticker;
-  const current = state.quotes[ticker] || {};
-  document.getElementById('manualPriceVal').value = current.price || '';
-  document.getElementById('manualBetaVal').value = (current.beta !== null && current.beta !== undefined) ? current.beta : '';
-  document.getElementById('manualYieldVal').value = (current.divYield !== null && current.divYield !== undefined) ? current.divYield : '';
-  document.getElementById('manualPriceDate').value = current.date || new Date().toISOString().split('T')[0];
+// 開啟手動微調彈窗 (同時包含數量、收盤價、Beta、殖利率)
+function promptManualEdit(assetId) {
+  const item = state.assets.find(a => a.id === assetId);
+  if (!item) return;
+
+  document.getElementById('manualAssetId').value = assetId;
+
+  if (item.type === 'STOCK') {
+    const ticker = resolveTicker(item.market, item.symbol);
+    const quote = state.quotes[ticker] || {};
+    const cName = getDisplayName(item.market, item.symbol, quote.name);
+
+    document.getElementById('manualModalTitle').innerText = `手動微調：${item.symbol} ${cName ? `(${cName})` : ''}`;
+    document.getElementById('manualQuoteKey').value = ticker;
+    document.getElementById('manualQtyLabel').innerText = '持有股數 (股)';
+    document.getElementById('manualQtyVal').value = item.qty;
+
+    document.getElementById('stockManualFields').style.display = 'block';
+    document.getElementById('manualPriceVal').value = quote.price || '';
+    document.getElementById('manualBetaVal').value = (quote.beta !== null && quote.beta !== undefined) ? quote.beta : '';
+    document.getElementById('manualYieldVal').value = (quote.divYield !== null && quote.divYield !== undefined) ? quote.divYield : '';
+    document.getElementById('manualPriceDate').value = quote.date || new Date().toISOString().split('T')[0];
+  } else {
+    // 現金或負債
+    document.getElementById('manualModalTitle').innerText = `微調：${item.type === 'CASH' ? '現金' : '負債'} (${item.currency})`;
+    document.getElementById('manualQuoteKey').value = '';
+    document.getElementById('manualQtyLabel').innerText = '金額';
+    document.getElementById('manualQtyVal').value = item.amount;
+    document.getElementById('stockManualFields').style.display = 'none';
+  }
+
   openModal('manualPriceModal');
 }
 
+// 儲存微調設定 (同步更新股數/金額與報價指標)
 function saveManualPrice() {
-  const ticker = document.getElementById('manualQuoteKey').value;
-  const price = parseFloat(document.getElementById('manualPriceVal').value);
-  const betaInput = document.getElementById('manualBetaVal').value;
-  const yieldInput = document.getElementById('manualYieldVal').value;
-  const date = document.getElementById('manualPriceDate').value;
+  const assetId = document.getElementById('manualAssetId').value;
+  const newQty = parseFloat(document.getElementById('manualQtyVal').value);
 
-  if (isNaN(price) || price <= 0 || !date) {
-    alert('請填寫正確收盤價與日期');
+  if (isNaN(newQty) || newQty <= 0) {
+    alert('請輸入大於 0 的數量或金額');
     return;
   }
 
-  let curr = 'USD';
-  if (ticker.endsWith('.TW') || ticker.endsWith('.TWO')) curr = 'TWD';
-  if (ticker.endsWith('.HK')) curr = 'HKD';
+  const item = state.assets.find(a => a.id === assetId);
+  if (!item) return;
 
-  state.quotes[ticker] = {
-    ...(state.quotes[ticker] || {}),
-    price: price,
-    beta: betaInput !== '' ? parseFloat(betaInput) : null,
-    divYield: yieldInput !== '' ? parseFloat(yieldInput) : null,
-    currency: curr,
-    date: date,
-    source: '手動輸入',
-    updatedAt: new Date().toLocaleTimeString(),
-    error: null,
-    isManual: true
-  };
+  if (item.type === 'STOCK') {
+    item.qty = newQty; // 更新股數
+
+    const ticker = document.getElementById('manualQuoteKey').value;
+    const price = parseFloat(document.getElementById('manualPriceVal').value);
+    const betaInput = document.getElementById('manualBetaVal').value;
+    const yieldInput = document.getElementById('manualYieldVal').value;
+    const date = document.getElementById('manualPriceDate').value;
+
+    if (isNaN(price) || price <= 0 || !date) {
+      alert('請填寫正確的收盤價格與日期');
+      return;
+    }
+
+    let curr = 'USD';
+    if (ticker.endsWith('.TW') || ticker.endsWith('.TWO')) curr = 'TWD';
+    if (ticker.endsWith('.HK')) curr = 'HKD';
+
+    state.quotes[ticker] = {
+      ...(state.quotes[ticker] || {}),
+      price: price,
+      beta: betaInput !== '' ? parseFloat(betaInput) : null,
+      divYield: yieldInput !== '' ? parseFloat(yieldInput) : null,
+      currency: curr,
+      date: date,
+      source: '手動輸入',
+      updatedAt: new Date().toLocaleTimeString(),
+      error: null,
+      isManual: true
+    };
+  } else {
+    // 現金或負債只更新金額
+    item.amount = newQty;
+  }
 
   saveToLocal();
   closeModal('manualPriceModal');
@@ -706,9 +750,9 @@ function renderUI() {
   let totalAssetTWD = 0;
   let totalDebtTWD = 0;
   let cashLikeTWD = 0; 
-  let beta0to1TWD = 0;   // 0 < Beta < 1
-  let beta1to2TWD = 0;   // 1 <= Beta < 2
-  let betaGte2TWD = 0;   // Beta >= 2
+  let beta0to1TWD = 0;   
+  let beta1to2TWD = 0;   
+  let betaGte2TWD = 0;   
   let weightedBetaSum = 0;
   let portfolioRefTWD = 0;
   let totalEstimatedDividendTWD = 0; 
@@ -717,7 +761,6 @@ function renderUI() {
   let hasMissingBeta = false;
   let missingReasons = [];
 
-  // 匯率顯示
   const fxInfoEl = document.getElementById('fxRateInfo');
   if (state.fxRates.USD.rate && state.fxRates.HKD.rate) {
     fxInfoEl.innerText = `匯率 (${state.fxRates.USD.date} / ExchangeRate-API)：1 美元 = ${state.fxRates.USD.rate.toFixed(2)} 台幣 | 1 港幣 = ${state.fxRates.HKD.rate.toFixed(2)} 台幣`;
@@ -731,7 +774,6 @@ function renderUI() {
   const benchmarkOpt = document.getElementById('returnBenchmark').value;
   const searchKey = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
 
-  // 計算每筆資產
   const enrichedAssets = state.assets.map(item => {
     let valTWD = null;
     let quote = null;
@@ -768,7 +810,6 @@ function renderUI() {
     return { ...item, valTWD, quote, profitTWD, profitRate, refPrice, estDivTWD };
   });
 
-  // 排序
   enrichedAssets.sort((a, b) => {
     if (sortOpt === 'AMOUNT_DESC') return (b.valTWD || 0) - (a.valTWD || 0);
     if (sortOpt === 'QTY_DESC') return (b.qty || b.amount || 0) - (a.qty || a.amount || 0);
@@ -783,7 +824,6 @@ function renderUI() {
     return 0;
   });
 
-  // 總額與 Beta 區間統計 (支援排除 QQQI)
   enrichedAssets.forEach(item => {
     if (excludeQQQI && item.type === 'STOCK' && item.symbol.toUpperCase() === 'QQQI') {
       return;
@@ -799,7 +839,6 @@ function renderUI() {
           const bNum = Number(beta);
           weightedBetaSum += item.valTWD * bNum;
 
-          // 四種 Beta 區間統計
           if (bNum === 0) {
             cashLikeTWD += item.valTWD;
           } else if (bNum > 0 && bNum < 1.0) {
@@ -831,11 +870,11 @@ function renderUI() {
     }
   });
 
-  // 明細卡片渲染 (支援快速檢索篩選)
   const filteredForDisplay = enrichedAssets.filter(item => {
     if (!searchKey) return true;
     if (item.type === 'STOCK') {
-      return item.symbol.toUpperCase().includes(searchKey) || (item.quote?.name || '').toUpperCase().includes(searchKey);
+      const cName = getDisplayName(item.market, item.symbol, item.quote?.name);
+      return item.symbol.toUpperCase().includes(searchKey) || cName.toUpperCase().includes(searchKey);
     } else {
       return item.currency.toUpperCase().includes(searchKey) || (item.type === 'CASH' ? '現金' : '負債').includes(searchKey);
     }
@@ -853,6 +892,8 @@ function renderUI() {
       const divYield = quote?.divYield;
       const currency = quote?.currency || (item.market === 'TW' ? 'TWD' : item.market === 'HK' ? 'HKD' : 'USD');
       const valTWD = item.valTWD;
+
+      const cName = getDisplayName(item.market, item.symbol, quote?.name);
 
       let yieldDisplay = '<span class="badge-warn">待補</span>';
       if (divYield !== null && divYield !== undefined) {
@@ -874,19 +915,17 @@ function renderUI() {
       const estDivDisplay = item.estDivTWD > 0 ? `約 $${Math.round(item.estDivTWD).toLocaleString()} TWD` : '無';
 
       const isExcluded = (excludeQQQI && item.symbol.toUpperCase() === 'QQQI');
+      const titleClass = item.market === 'TW' ? 'item-title-tw' : 'item-title-other';
 
       card.innerHTML = `
         <div class="item-header">
           <div>
-            <span class="item-title">${item.symbol}</span>
+            <span class="${titleClass}">${item.symbol}</span>
             <span class="item-market">${item.market}</span>
-            ${isExcluded ? '<span style="font-size:11px; padding:2px 5px; background:#fee2e2; color:#dc2626; border-radius:4px; font-weight:700;">已自總資產排除</span>' : ''}
-            <span style="font-size:12px; color:var(--text-sub);">${quote?.name ? `(${quote.name})` : ''}</span>
+            ${cName ? `<span class="item-cname">${cName}</span>` : ''}
+            ${isExcluded ? '<span style="font-size:11px; padding:2px 5px; background:#fee2e2; color:#dc2626; border-radius:4px; font-weight:700; margin-left:4px;">已自總資產排除</span>' : ''}
           </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-edit" onclick="promptEditQty('${item.id}')">修正股數</button>
-            <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
-          </div>
+          <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
         </div>
         <div class="item-data">
           <span>持有股數：${item.qty.toLocaleString()} 股</span>
@@ -910,8 +949,8 @@ function renderUI() {
         </div>
         <div class="item-meta">
           ${price !== null && price !== undefined ? 
-            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動微調</a>` : 
-            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualPrice('${ticker}')">手動補登</a>`
+            `交易日：${quote.date} | 來源：${quote.source}${quote.isManual ? '(手動)' : ''}<br>更新於：${quote.updatedAt}${quote.error ? `<br><span class="badge-warn">${quote.error}</span>` : ''} · <a href="javascript:void(0)" onclick="promptManualEdit('${item.id}')">手動微調</a>` : 
+            `<span class="badge-warn">${quote?.error || '查無收盤價'}</span> <a href="javascript:void(0)" onclick="promptManualEdit('${item.id}')">手動微調</a>`
           }
         </div>
       `;
@@ -923,12 +962,9 @@ function renderUI() {
       card.innerHTML = `
         <div class="item-header">
           <div>
-            <span class="item-title">${isDebt ? '負債' : '現金'} (${item.currency})</span>
+            <span class="item-title-other">${isDebt ? '負債' : '現金'} (${item.currency})</span>
           </div>
-          <div style="display:flex; gap:6px;">
-            <button class="btn-edit" onclick="promptEditQty('${item.id}')">修改金額</button>
-            <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
-          </div>
+          <button class="btn-danger" onclick="deleteItem('${item.id}')">刪除</button>
         </div>
         <div class="item-data">
           <span>原幣金額：</span>
@@ -937,6 +973,9 @@ function renderUI() {
         <div class="item-data" style="font-weight:700; font-size:15px;">
           <span>折合 TWD：</span>
           <span>${valTWD !== null ? `$${Math.round(valTWD).toLocaleString()}<span style="font-size:12px; font-weight:normal; color:var(--text-sub);">${ratioDisplay}</span>` : '<span class="badge-warn">缺少匯率</span>'}</span>
+        </div>
+        <div class="item-meta">
+          <a href="javascript:void(0)" onclick="promptManualEdit('${item.id}')">修改金額</a>
         </div>
       `;
     }
