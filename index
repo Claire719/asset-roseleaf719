@@ -62,6 +62,30 @@
     .btn-danger { background: var(--danger); color: #fff; padding: 6px 10px; font-size: 12px; border-radius: 6px; }
     .btn-edit { background: #f1f5f9; color: var(--text); padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border); }
 
+    /* 搜尋與控制列 */
+    .search-box {
+      margin-bottom: 10px;
+      display: flex;
+      gap: 6px;
+    }
+    .search-box input {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 15px;
+      text-transform: uppercase;
+    }
+    .search-box button {
+      flex: none;
+      padding: 10px 14px;
+      background: #f1f5f9;
+      color: var(--text);
+      font-size: 13px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
     .control-row {
       display: flex;
       justify-content: space-between;
@@ -192,6 +216,12 @@
     <button class="btn-primary" onclick="refreshQuotes()">更新價格</button>
     <button class="btn-outline" onclick="openModal('addAssetModal')">新增項目</button>
     <button class="btn-outline" onclick="openModal('backupModal')">備份/還原</button>
+  </div>
+
+  <!-- 代號檢索搜尋框 -->
+  <div class="search-box">
+    <input type="text" id="searchKeyword" placeholder="🔍 輸入代號或幣別檢索 (如: QQQ, 00662, USD)" oninput="renderUI()">
+    <button onclick="clearSearch()">清除</button>
   </div>
 
   <!-- 控制列：排序與報酬基準 -->
@@ -345,7 +375,7 @@
 
 <script>
 // 【重要】請將此網址替換為您的 Cloudflare Worker 網址
-const PROXY_BASE_URL = 'https://asset-tracker-proxy.roseleaf719.workers.dev'; 
+const PROXY_BASE_URL = 'https://asset-tracker-proxy.yourname.workers.dev'; 
 
 const STORAGE_KEY = 'PORTFOLIO_LEDGER_DATA_V4';
 
@@ -390,6 +420,11 @@ function toggleFormType() {
 
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function clearSearch() {
+  document.getElementById('searchKeyword').value = '';
+  renderUI();
+}
 
 function saveItem() {
   const type = document.getElementById('itemType').value;
@@ -470,7 +505,7 @@ function resolveTicker(market, symbol) {
   return symbol;
 }
 
-// 核心修正：加入時區偏移量精準解析當地交易日
+// 包含時區偏移量 (gmtoffset) 解析與防快取
 async function fetchQuote(tickerKey) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -516,7 +551,7 @@ async function fetchQuote(tickerKey) {
 
     if (price === null) throw new Error('無收盤價格資料');
 
-    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)，精準得到當地交易日（例如美東 9/22）
+    // 精準日期計算：使用交易所時區偏移量 (gmtoffset)
     const gmtOffset = meta.gmtoffset !== undefined ? meta.gmtoffset : 0;
     const localMs = (validTimestamp + gmtOffset) * 1000;
     const localDate = new Date(localMs);
@@ -704,6 +739,7 @@ function renderUI() {
 
   const sortOpt = document.getElementById('sortOption').value;
   const benchmarkOpt = document.getElementById('returnBenchmark').value;
+  const keyword = (document.getElementById('searchKeyword')?.value || '').trim().toUpperCase();
 
   // 計算每筆項目資料並支援排序
   const enrichedAssets = state.assets.map(item => {
@@ -757,7 +793,7 @@ function renderUI() {
     return 0;
   });
 
-  // 統計總額、類現金與配息
+  // 全局統計（總額、類現金、配息不因搜尋而縮水，保證總額完整真實）
   enrichedAssets.forEach(item => {
     if (item.valTWD !== null) {
       if (item.type === 'STOCK') {
@@ -792,8 +828,22 @@ function renderUI() {
     }
   });
 
-  // 卡片渲染
-  enrichedAssets.forEach(item => {
+  // 根據代號或幣別進行搜尋過濾
+  const displayedAssets = enrichedAssets.filter(item => {
+    if (!keyword) return true;
+    if (item.type === 'STOCK') {
+      return (item.symbol && item.symbol.toUpperCase().includes(keyword)) || 
+             (item.market && item.market.toUpperCase().includes(keyword)) ||
+             (item.quote?.name && item.quote.name.toUpperCase().includes(keyword));
+    } else {
+      return (item.currency && item.currency.toUpperCase().includes(keyword)) ||
+             (item.type === 'CASH' && '現金'.includes(keyword)) ||
+             (item.type === 'DEBT' && '負債'.includes(keyword));
+    }
+  });
+
+  // 渲染卡片
+  displayedAssets.forEach(item => {
     const card = document.createElement('div');
     card.className = 'card';
 
@@ -893,6 +943,10 @@ function renderUI() {
     }
     listEl.appendChild(card);
   });
+
+  if (displayedAssets.length === 0 && state.assets.length > 0) {
+    listEl.innerHTML = `<div style="text-align:center; padding: 24px; color: var(--text-sub); font-size:14px;">找不到與「${keyword}」相符的標的代號</div>`;
+  }
 
   const banner = document.getElementById('statusBanner');
   if (hasIncomplete) {
